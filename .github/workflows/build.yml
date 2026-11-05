@@ -13,10 +13,10 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Generate Plugin Files & Resource Pack
+      - name: Generate Plugin Files & Texture Pack
         shell: python
         run: |
-          import os, zipfile
+          import os, zipfile, struct, zlib
 
           def save(path, text):
               d = os.path.dirname(path)
@@ -30,7 +30,7 @@ jobs:
               <modelVersion>4.0.0</modelVersion>
               <groupId>com.bliss</groupId>
               <artifactId>BlissAspects</artifactId>
-              <version>8.0.0</version>
+              <version>9.0.0</version>
               <packaging>jar</packaging>
               <properties><java.version>21</java.version><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding></properties>
               <repositories>
@@ -44,7 +44,7 @@ jobs:
           </project>""")
 
           save("src/main/resources/plugin.yml", r"""name: BlissAspects
-          version: 8.0.0
+          version: 9.0.0
           main: com.bliss.aspects.BlissAspects
           api-version: '1.21'
           commands:
@@ -52,7 +52,7 @@ jobs:
               permission: bliss.use
               description: Bliss Aspect gem command""")
 
-          save("src/main/resources/config.yml", r"""# BlissAspects Longer SMP Cooldowns (in seconds)
+          save("src/main/resources/config.yml", r"""# BlissAspects Balanced SMP Cooldowns (in seconds)
           cooldowns:
             TERRA:
               move1: 14.0
@@ -159,22 +159,22 @@ jobs:
 
                           switch (t) {
                               case STORM -> {
-                                  p.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, loc, tier >= 3 ? 8 : 3, 0.35, 0.45, 0.35, 0.08);
+                                  p.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, loc, tier >= 3 ? 10 : 4, 0.35, 0.45, 0.35, 0.08);
                                   p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 40, tier >= 4 ? 1 : 0, false, false, false));
                               }
                               case TERRA -> p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 40, tier >= 4 ? 1 : 0, false, false, false));
                               case BLOOM -> {
-                                  p.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, loc, tier >= 3 ? 6 : 2, 0.3, 0.3, 0.3);
+                                  p.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, loc, tier >= 3 ? 8 : 4, 0.4, 0.4, 0.4);
                                   p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 40, tier >= 5 ? 1 : 0, false, false, false));
                               }
                               case RAGE -> {
                                   if (p.getHealth() <= p.getMaxHealth() / 2.0) {
                                       p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 40, tier >= 4 ? 1 : 0, false, false, false));
-                                      p.getWorld().spawnParticle(Particle.FLAME, loc, 6, 0.25, 0.4, 0.25, 0.02);
+                                      p.getWorld().spawnParticle(Particle.FLAME, loc, 8, 0.25, 0.4, 0.25, 0.03);
                                   }
                               }
                               case VOID -> {
-                                  p.getWorld().spawnParticle(Particle.PORTAL, loc, tier >= 3 ? 12 : 5, 0.4, 0.5, 0.4);
+                                  p.getWorld().spawnParticle(Particle.PORTAL, loc, tier >= 3 ? 16 : 8, 0.4, 0.5, 0.4);
                                   if (p.getFallDistance() > 3.0f) p.setFallDistance(0);
                               }
                               case PHANTOM -> {
@@ -189,12 +189,12 @@ jobs:
                   }, 0L, 20L);
               }
 
-              // High-Density Particle Engine
+              // Visual Geometry Helpers
               public static void drawDenseRing(Location center, double radius, Particle p, int points, int perPoint) {
                   for (int i = 0; i < points; i++) {
                       double a = 2 * Math.PI * i / points;
                       Location pt = center.clone().add(Math.cos(a) * radius, 0, Math.sin(a) * radius);
-                      center.getWorld().spawnParticle(p, pt, perPoint, 0.04, 0.04, 0.04, 0.01);
+                      center.getWorld().spawnParticle(p, pt, perPoint, 0.03, 0.03, 0.03, 0.01);
                   }
               }
 
@@ -208,7 +208,7 @@ jobs:
 
               public static void drawHelixBeam(Location start, Vector dir, double maxDist, Particle p, Particle accent) {
                   World w = start.getWorld();
-                  for (double d = 0; d < maxDist; d += 0.35) {
+                  for (double d = 0; d < maxDist; d += 0.3) {
                       Location base = start.clone().add(dir.clone().multiply(d));
                       double a = d * 4.0;
                       Vector ortho = new Vector(-dir.getZ(), 0, dir.getX()).normalize().multiply(0.6);
@@ -216,12 +216,13 @@ jobs:
                       Location p2 = base.clone().add(ortho.clone().rotateAroundAxis(dir, a + Math.PI));
                       w.spawnParticle(p, p1, 1, 0, 0, 0, 0);
                       w.spawnParticle(p, p2, 1, 0, 0, 0, 0);
-                      if (d % 1.2 < 0.35 && accent != null) {
+                      if (d % 1.2 < 0.3 && accent != null) {
                           w.spawnParticle(accent, base, 3, 0.1, 0.1, 0.1, 0.02);
                       }
                   }
               }
 
+              // Safe Task Engine with Auto-Cleanup & Guaranteed Expiration
               public void spawnTask(int durationTicks, int periodTicks, Consumer<Integer> tickAction) {
                   new BukkitRunnable() {
                       int elapsed = 0;
@@ -313,29 +314,42 @@ jobs:
                   ItemMeta m = it.getItemMeta();
                   int tier = Math.min(5, kills);
                   String stars = "★".repeat(Math.max(1, tier)) + "☆".repeat(Math.max(0, 5 - tier));
+                  String progress = "█".repeat(tier * 2) + "░".repeat(10 - (tier * 2));
 
-                  m.displayName(Component.text("❖ ", NamedTextColor.WHITE)
+                  String rank = switch(tier) {
+                      case 1 -> "Awakened";
+                      case 2 -> "Empowered";
+                      case 3 -> "Mastered";
+                      case 4 -> "Mythic";
+                      case 5 -> "ASCENDED";
+                      default -> "Dormant";
+                  };
+
+                  m.displayName(Component.text("【 ❖ ", NamedTextColor.WHITE)
                       .append(a.getFormattedName().decorate(TextDecoration.BOLD))
-                      .append(Component.text(" Gem ❖ ", NamedTextColor.WHITE))
-                      .append(Component.text("[" + stars + "]", NamedTextColor.GOLD))
+                      .append(Component.text(" GEM ❖ 】", NamedTextColor.WHITE))
                       .decoration(TextDecoration.ITALIC, false));
 
                   List<Component> lore = new ArrayList<>();
-                  lore.add(Component.text("Rarity: ", NamedTextColor.GRAY).append(Component.text(a.getRarity(), NamedTextColor.LIGHT_PURPLE).decorate(TextDecoration.BOLD)).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("Unique Souls: " + kills + " / 5 Players", NamedTextColor.AQUA).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("Passive Enchantment:", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text(" ✦ " + a.getPassiveDesc(), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("✦ Rarity: ", NamedTextColor.DARK_GRAY).append(Component.text(a.getRarity(), NamedTextColor.LIGHT_PURPLE).decorate(TextDecoration.BOLD)).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("✦ Rank:   ", NamedTextColor.DARK_GRAY).append(Component.text(stars + " [" + rank + "]", NamedTextColor.GOLD)).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("✦ Souls:  [" + progress + "] " + kills + "/5 Players", NamedTextColor.AQUA).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("──────────────────────────────", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("✦ PASSIVE ENCHANTMENT:", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("  " + a.getPassiveDesc(), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.empty());
-                  lore.add(Component.text("Unique Moveset (4 Abilities):", NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("▶ Right-Click: ", NamedTextColor.GOLD).append(Component.text(a.getM1(), NamedTextColor.WHITE)).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("▶ Shift + Right-Click: ", NamedTextColor.AQUA).append(Component.text(a.getM2(), NamedTextColor.WHITE)).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("▶ Left-Click: ", NamedTextColor.GREEN).append(Component.text(a.getM3(), NamedTextColor.WHITE)).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("▶ Drop Key (Q): ", NamedTextColor.RED).append(Component.text(a.getM4() + " [Unique Ultimate]", NamedTextColor.YELLOW).decorate(TextDecoration.BOLD)).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("Tier Stats: +" + (tier * 10) + "% Damage | -" + (tier * 6) + "% Cooldowns", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-                  if (tier >= 4) lore.add(Component.text("✦ Execute: +30% True Damage on targets below 35% HP", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
-                  if (tier == 5) lore.add(Component.text("✦ Ascended: Radiant Halo & Max Duration", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("✦ [R-CLICK]  " + a.getM1(), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("  Primary offensive burst / heavy shockwave", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("✦ [SHIFT+R]  " + a.getM2(), NamedTextColor.AQUA).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("  Sustained protection dome / evasive state", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("✦ [L-CLICK]  " + a.getM3(), NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("  Crowd control gravity / rooting snare", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("✦ [PRESS Q]  " + a.getM4() + " [ULTIMATE]", NamedTextColor.RED).decorate(TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("  Cataclysmic room-clearing elemental domain", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("──────────────────────────────", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("✦ STAT BONUSES: ", NamedTextColor.LIGHT_PURPLE).append(Component.text("+" + (tier * 10) + "% DMG ", NamedTextColor.RED)).append(Component.text("| -" + (tier * 6) + "% CD", NamedTextColor.GREEN)).decoration(TextDecoration.ITALIC, false));
+                  if (tier >= 4) lore.add(Component.text("☠ Execute: +30% True Damage on targets below 35% HP", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
+                  if (tier == 5) lore.add(Component.text("👑 Ascended: Radiant Halo & Max Duration", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("Hold in Main Hand or Offhand to wield.", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, true));
 
                   m.lore(lore);
@@ -393,7 +407,8 @@ jobs:
                   if (m.isEdible()) return true;
                   String name = m.name();
                   return name.contains("POTION") || name.equals("BOW") || name.equals("CROSSBOW")
-                          || name.equals("SHIELD") || name.equals("ENDER_PEARL") || name.equals("WIND_CHARGE");
+                          || name.equals("SHIELD") || name.equals("ENDER_PEARL") || name.equals("WIND_CHARGE")
+                          || name.equals("GOLDEN_APPLE") || name.equals("ENCHANTED_GOLDEN_APPLE");
               }
 
               private double applyExecute(LivingEntity t, double dmg, int tier) {
@@ -472,7 +487,7 @@ jobs:
                   }
               }
 
-              // MOVE 1: BEAMS & RUPTURES
+              // MOVE 1: EXPLOSIVE BEAMS & SPAM BURSTS
               private boolean castMove1(Player p, AspectType a, int tier, double dM, double cM) {
                   String k = "m1";
                   double baseCd = cd.getConfigCooldown(a, 1);
@@ -492,11 +507,12 @@ jobs:
                                   if (p.isOnGround() || ++t > 30) {
                                       Location slam = p.getLocation();
                                       w.playSound(slam, Sound.ENTITY_GENERIC_EXPLODE, 2.5f, 0.5f);
-                                      pl.spawnTask(80 + (tier * 10), 2, step -> {
-                                          double r = 1.0 + (step * 0.12);
-                                          BlissAspects.drawDenseRing(slam, r, Particle.BLOCK, 36, 2);
+                                      w.spawnParticle(Particle.EXPLOSION, slam.clone().add(0, 0.5, 0), 4);
+                                      pl.spawnTask(50 + (tier * 10), 2, step -> {
+                                          double r = 1.0 + (step * 0.15);
+                                          BlissAspects.drawDenseRing(slam, r, Particle.BLOCK, 48, 3);
                                           for (Entity e : slam.getWorld().getNearbyEntities(slam, r, 2.5, r)) if (e instanceof LivingEntity tg && tg != p) {
-                                              tg.damage(applyExecute(tg, 2.0 * dM, tier), p);
+                                              tg.damage(applyExecute(tg, 2.5 * dM, tier), p);
                                               tg.setVelocity(new Vector(0, 0.35, 0));
                                           }
                                       });
@@ -507,10 +523,11 @@ jobs:
                       }
                       case FROST -> {
                           w.playSound(eye, Sound.BLOCK_GLASS_BREAK, 2.5f, 0.5f);
+                          w.playSound(eye, Sound.ENTITY_PLAYER_HURT_FREEZE, 2f, 1.5f);
                           BlissAspects.drawHelixBeam(eye, dir, 16.0, Particle.SNOWFLAKE, Particle.END_ROD);
                           for (int i = 1; i <= 16; i++) {
                               Location pt = eye.clone().add(dir.clone().multiply(i));
-                              w.spawnParticle(Particle.CLOUD, pt, 5, 0.3, 0.3, 0.3, 0.02);
+                              w.spawnParticle(Particle.CLOUD, pt, 8, 0.4, 0.4, 0.4, 0.05);
                               for (Entity e : w.getNearbyEntities(pt, 2.0, 2.0, 2.0)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.damage(applyExecute(tg, 7.5 * dM, tier), p);
                                   tg.setFreezeTicks(350);
@@ -521,9 +538,9 @@ jobs:
                       case REAPER -> {
                           w.playSound(eye, Sound.ENTITY_WITHER_SHOOT, 2f, 1.4f);
                           BlissAspects.drawHelixBeam(eye, dir, 14.0, Particle.SOUL_FIRE_FLAME, Particle.SCULK_SOUL);
-                          pl.spawnTask(60 + (tier * 10), 2, step -> {
+                          pl.spawnTask(50 + (tier * 10), 2, step -> {
                               Location arcLoc = eye.clone().add(dir.clone().multiply(step * 0.4));
-                              BlissAspects.drawDenseRing(arcLoc, 1.8, Particle.SOUL_FIRE_FLAME, 24, 1);
+                              BlissAspects.drawDenseRing(arcLoc, 2.0, Particle.SOUL_FIRE_FLAME, 32, 2);
                               double stolen = 0;
                               for (Entity e : arcLoc.getWorld().getNearbyEntities(arcLoc, 2.5, 2.5, 2.5)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.damage(applyExecute(tg, 2.5 * dM, tier), p);
@@ -537,11 +554,12 @@ jobs:
                           if (p.getHealth() > 2.0) p.setHealth(p.getHealth() - 2.0);
                           w.playSound(eye, Sound.ENTITY_RAVAGER_ATTACK, 2.5f, 0.8f);
                           Location start = eye.clone();
-                          pl.spawnTask(60 + (tier * 10), 2, step -> {
+                          pl.spawnTask(50 + (tier * 10), 2, step -> {
                               Location wave = start.clone().add(dir.clone().multiply(step * 0.45));
-                              BlissAspects.drawDenseRing(wave, 2.2, Particle.LAVA, 20, 2);
-                              w.spawnParticle(Particle.FLAME, wave, 30, 0.6, 0.6, 0.6, 0.08);
-                              for (Entity e : wave.getWorld().getNearbyEntities(wave, 2.8, 2.5, 2.8)) if (e instanceof LivingEntity tg && tg != p) {
+                              BlissAspects.drawDenseRing(wave, 2.5, Particle.LAVA, 24, 2);
+                              w.spawnParticle(Particle.FLAME, wave, 40, 0.6, 0.6, 0.6, 0.1);
+                              w.spawnParticle(Particle.SWEEP_ATTACK, wave, 4, 0.4, 0.4, 0.4);
+                              for (Entity e : wave.getWorld().getNearbyEntities(wave, 3.0, 2.5, 3.0)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.damage(applyExecute(tg, 3.5 * dM, tier), p);
                                   tg.setFireTicks(100);
                               }
@@ -551,9 +569,9 @@ jobs:
                           RayTraceResult r = p.rayTraceBlocks(24);
                           Location tgt = (r != null && r.getHitPosition() != null) ? r.getHitPosition().toLocation(w) : eye.clone().add(dir.clone().multiply(14));
                           w.playSound(tgt, Sound.ITEM_TRIDENT_THUNDER, 2.5f, 1.2f);
-                          pl.spawnTask(80 + (tier * 10), 2, step -> {
-                              BlissAspects.drawDenseRing(tgt.clone().add(0, (step % 20) * 0.4, 0), 2.0, Particle.END_ROD, 32, 1);
-                              w.spawnParticle(Particle.FLASH, tgt.clone().add(0, 1.0, 0), 2);
+                          pl.spawnTask(60 + (tier * 10), 2, step -> {
+                              BlissAspects.drawDenseRing(tgt.clone().add(0, (step % 20) * 0.4, 0), 2.2, Particle.END_ROD, 36, 2);
+                              w.spawnParticle(Particle.FLASH, tgt.clone().add(0, 1.0, 0), 3);
                               for (Entity e : tgt.getWorld().getNearbyEntities(tgt, 4.5, 6.0, 4.5)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.damage(applyExecute(tg, 2.8 * dM, tier), p);
                                   tg.setFireTicks(80);
@@ -562,11 +580,10 @@ jobs:
                       }
                       case BLOOM -> {
                           w.playSound(eye, Sound.BLOCK_VINE_BREAK, 2.5f, 0.7f);
-                          BlissAspects.drawHelixBeam(eye, dir, 14.0, Particle.HAPPY_VILLAGER, Particle.SPORE_BLOSSOM_AIR);
-                          pl.spawnTask(60 + (tier * 10), 2, step -> {
+                          BlissAspects.drawHelixBeam(eye, dir, 14.0, Particle.HAPPY_VILLAGER, Particle.POOF);
+                          pl.spawnTask(50 + (tier * 10), 2, step -> {
                               Location vine = eye.clone().add(dir.clone().multiply(step * 0.4));
-                              BlissAspects.drawDenseRing(vine, 1.6, Particle.HAPPY_VILLAGER, 24, 1);
-                              w.spawnParticle(Particle.SPORE_BLOSSOM_AIR, vine, 15, 0.4, 0.4, 0.4);
+                              BlissAspects.drawDenseRing(vine, 1.8, Particle.HAPPY_VILLAGER, 28, 2);
                               for (Entity e : vine.getWorld().getNearbyEntities(vine, 2.4, 2.4, 2.4)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.damage(applyExecute(tg, 2.5 * dM, tier), p);
                                   tg.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 100, 1));
@@ -578,10 +595,10 @@ jobs:
                           RayTraceResult tr = p.rayTraceBlocks(26);
                           Location tgt = (tr != null && tr.getHitPosition() != null) ? tr.getHitPosition().toLocation(w) : eye.clone().add(dir.clone().multiply(16));
                           w.playSound(tgt, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 2.5f, 1.4f);
-                          pl.spawnTask(70 + (tier * 10), 4, step -> {
+                          pl.spawnTask(60 + (tier * 10), 3, step -> {
                               w.strikeLightningEffect(tgt);
-                              BlissAspects.drawDenseRing(tgt, 3.5, Particle.ELECTRIC_SPARK, 36, 3);
-                              w.spawnParticle(Particle.FLASH, tgt.clone().add(0, 1.0, 0), 1);
+                              BlissAspects.drawDenseRing(tgt, 4.0, Particle.ELECTRIC_SPARK, 48, 4);
+                              w.spawnParticle(Particle.FLASH, tgt.clone().add(0, 1.0, 0), 2);
                               for (Entity e : tgt.getWorld().getNearbyEntities(tgt, 5.5, 4.0, 5.5)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.damage(applyExecute(tg, 4.0 * dM, tier), p);
                               }
@@ -591,12 +608,12 @@ jobs:
                           RayTraceResult tr = p.rayTraceBlocks(20);
                           Location c = (tr != null && tr.getHitPosition() != null) ? tr.getHitPosition().toLocation(w) : eye.clone().add(dir.clone().multiply(12));
                           w.playSound(c, Sound.BLOCK_BEACON_DEACTIVATE, 2.5f, 0.5f);
-                          pl.spawnTask(90 + (tier * 10), 2, step -> {
-                              double spin = (step * 0.15);
-                              BlissAspects.drawDenseRing(c.clone().add(0, Math.sin(spin) * 0.5, 0), 3.0, Particle.PORTAL, 40, 2);
-                              BlissAspects.drawDenseRing(c.clone().add(0, -Math.sin(spin) * 0.5, 0), 1.5, Particle.REVERSE_PORTAL, 24, 1);
+                          pl.spawnTask(70 + (tier * 10), 2, step -> {
+                              double spin = (step * 0.2);
+                              BlissAspects.drawDenseRing(c.clone().add(0, Math.sin(spin) * 0.5, 0), 3.5, Particle.PORTAL, 48, 3);
+                              BlissAspects.drawDenseRing(c.clone().add(0, -Math.sin(spin) * 0.5, 0), 1.8, Particle.REVERSE_PORTAL, 28, 2);
                               for (Entity e : c.getWorld().getNearbyEntities(c, 7.5, 5.0, 7.5)) if (e instanceof LivingEntity tg && tg != p) {
-                                  tg.setVelocity(c.toVector().subtract(tg.getLocation().toVector()).normalize().multiply(0.5));
+                                  tg.setVelocity(c.toVector().subtract(tg.getLocation().toVector()).normalize().multiply(0.55));
                                   tg.damage(applyExecute(tg, 2.0 * dM, tier), p);
                               }
                           });
@@ -611,6 +628,7 @@ jobs:
                               tg.damage(applyExecute(tg, 10.0 * dM, tier), p);
                               tg.addPotionEffect(new PotionEffect(PotionEffectType.DARKNESS, 120, 1));
                               BlissAspects.drawDenseDome(bh, 2.5, Particle.SQUID_INK, 4);
+                              w.spawnParticle(Particle.CRIT, bh.clone().add(0, 1.0, 0), 60, 0.5, 0.5, 0.5, 0.3);
                           } else {
                               p.sendActionBar(Component.text("Aim at a target to Assassinate!", NamedTextColor.GRAY));
                               return false;
@@ -620,7 +638,7 @@ jobs:
                           p.setVelocity(dir.clone().setY(0.2).multiply(2.5));
                           w.playSound(eye, Sound.ITEM_ARMOR_EQUIP_NETHERITE, 2.5f, 0.7f);
                           pl.spawnTask(50 + (tier * 5), 1, step -> {
-                              BlissAspects.drawDenseRing(p.getLocation().add(0, 0.8, 0), 1.5, Particle.CRIT, 20, 2);
+                              BlissAspects.drawDenseRing(p.getLocation().add(0, 0.8, 0), 1.6, Particle.CRIT, 24, 3);
                               for (Entity e : p.getNearbyEntities(2.5, 2.5, 2.5)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.damage(applyExecute(tg, 9.0 * dM, tier), p);
                                   tg.setVelocity(p.getLocation().getDirection().multiply(1.8).setY(0.5));
@@ -632,7 +650,7 @@ jobs:
                   return true;
               }
 
-              // MOVE 2: VISUAL SUSTAINED DOMES & AURAS
+              // MOVE 2: VISUAL SUSTAINED DOMES
               private boolean castMove2(Player p, AspectType a, int tier, double cM) {
                   String k = "m2";
                   double baseCd = cd.getConfigCooldown(a, 2);
@@ -640,7 +658,7 @@ jobs:
                   cd.setCooldown(p, k, baseCd * cM);
 
                   World w = p.getWorld(); Location eye = p.getEyeLocation();
-                  int duration = 100 + (tier * 20);
+                  int duration = 90 + (tier * 15); // Clean 4.5 to 7.5 seconds
 
                   switch (a) {
                       case TERRA -> {
@@ -648,7 +666,7 @@ jobs:
                           p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, duration, 2));
                           p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, duration, 2));
                           pl.spawnTask(duration, 2, step -> {
-                              BlissAspects.drawDenseDome(p.getLocation(), 3.2, Particle.BLOCK, 5);
+                              BlissAspects.drawDenseDome(p.getLocation(), 3.5, Particle.BLOCK, 5);
                               for (Entity e : p.getNearbyEntities(4.5, 2.5, 4.5)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.setVelocity(tg.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(0.7));
                               }
@@ -658,8 +676,8 @@ jobs:
                           w.playSound(eye, Sound.BLOCK_POWDER_SNOW_STEP, 2.5f, 1.4f);
                           p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, duration, 2));
                           pl.spawnTask(duration, 2, step -> {
-                              BlissAspects.drawDenseDome(p.getLocation(), 2.8, Particle.SNOWFLAKE, 4);
-                              w.spawnParticle(Particle.END_ROD, p.getLocation().add(0, 1.0, 0), 2, 0.3, 0.5, 0.3, 0.01);
+                              BlissAspects.drawDenseDome(p.getLocation(), 3.0, Particle.SNOWFLAKE, 4);
+                              w.spawnParticle(Particle.END_ROD, p.getLocation().add(0, 1.0, 0), 4, 0.3, 0.5, 0.3, 0.02);
                               for (Entity e : p.getNearbyEntities(3.5, 2.0, 3.5)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 2));
                               }
@@ -670,8 +688,8 @@ jobs:
                           p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, duration, 2, false, false));
                           w.playSound(eye, Sound.ENTITY_PHANTOM_FLAP, 2.5f, 0.5f);
                           pl.spawnTask(duration, 2, step -> {
-                              w.spawnParticle(Particle.SQUID_INK, p.getLocation().add(0, 0.8, 0), 25, 0.4, 0.6, 0.4, 0.03);
-                              BlissAspects.drawDenseRing(p.getLocation().add(0, 0.2, 0), 1.2, Particle.SOUL_FIRE_FLAME, 20, 1);
+                              w.spawnParticle(Particle.SQUID_INK, p.getLocation().add(0, 0.8, 0), 30, 0.4, 0.6, 0.4, 0.04);
+                              BlissAspects.drawDenseRing(p.getLocation().add(0, 0.2, 0), 1.5, Particle.SOUL_FIRE_FLAME, 24, 2);
                           });
                       }
                       case RAGE -> {
@@ -681,17 +699,17 @@ jobs:
                           w.playSound(eye, Sound.ENTITY_ENDER_DRAGON_GROWL, 2.5f, 1.4f);
                           pl.spawnTask(duration, 2, step -> {
                               Location ploc = p.getLocation();
-                              BlissAspects.drawDenseRing(ploc.clone().add(0, 0.2, 0), 1.5, Particle.LAVA, 16, 1);
-                              BlissAspects.drawDenseRing(ploc.clone().add(0, 1.2, 0), 1.0, Particle.FLAME, 20, 1);
-                              w.spawnParticle(Particle.ANGRY_VILLAGER, ploc.add(0, 1.8, 0), 2, 0.2, 0.2, 0.2);
+                              BlissAspects.drawDenseRing(ploc.clone().add(0, 0.2, 0), 1.8, Particle.LAVA, 20, 2);
+                              BlissAspects.drawDenseRing(ploc.clone().add(0, 1.2, 0), 1.2, Particle.FLAME, 24, 2);
+                              w.spawnParticle(Particle.ANGRY_VILLAGER, ploc.add(0, 1.8, 0), 3, 0.2, 0.2, 0.2);
                           });
                       }
                       case AEGIS -> {
                           p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, duration, 3));
                           w.playSound(eye, Sound.BLOCK_BEACON_ACTIVATE, 2.5f, 1.8f);
                           pl.spawnTask(duration, 2, step -> {
-                              BlissAspects.drawDenseDome(p.getLocation(), 4.0, Particle.TOTEM_OF_UNDYING, 5);
-                              w.spawnParticle(Particle.WAX_OFF, p.getLocation().add(0, 1.0, 0), 10, 1.5, 1.5, 1.5);
+                              BlissAspects.drawDenseDome(p.getLocation(), 4.2, Particle.TOTEM_OF_UNDYING, 5);
+                              w.spawnParticle(Particle.WAX_OFF, p.getLocation().add(0, 1.0, 0), 15, 1.5, 1.5, 1.5);
                               for (Entity e : p.getNearbyEntities(4.5, 4.5, 4.5)) if (e instanceof Projectile proj) {
                                   proj.setVelocity(proj.getVelocity().multiply(-0.9));
                               }
@@ -701,24 +719,24 @@ jobs:
                           p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, duration, 2));
                           w.playSound(eye, Sound.ENTITY_ALLAY_ITEM_TAKEN, 2.5f, 0.6f);
                           pl.spawnTask(duration, 2, step -> {
-                              BlissAspects.drawDenseDome(p.getLocation(), 3.0, Particle.SPORE_BLOSSOM_AIR, 4);
-                              w.spawnParticle(Particle.HEART, p.getLocation().add(0, 1.5, 0), 2, 0.4, 0.4, 0.4);
-                              p.setHealth(Math.min(p.getMaxHealth(), p.getHealth() + 0.35));
+                              BlissAspects.drawDenseDome(p.getLocation(), 3.2, Particle.HAPPY_VILLAGER, 4);
+                              w.spawnParticle(Particle.HEART, p.getLocation().add(0, 1.5, 0), 3, 0.4, 0.4, 0.4);
+                              p.setHealth(Math.min(p.getMaxHealth(), p.getHealth() + 0.4));
                           });
                       }
                       case STORM -> {
                           p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, duration, 2));
                           w.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 2.5f, 1.8f);
                           pl.spawnTask(duration, 2, step -> {
-                              BlissAspects.drawDenseRing(p.getLocation().add(0, 0.2, 0), 1.2, Particle.ELECTRIC_SPARK, 24, 2);
-                              w.spawnParticle(Particle.ELECTRIC_SPARK, p.getLocation().add(0, 1.0, 0), 15, 0.4, 0.6, 0.4, 0.1);
+                              BlissAspects.drawDenseRing(p.getLocation().add(0, 0.2, 0), 1.5, Particle.ELECTRIC_SPARK, 32, 3);
+                              w.spawnParticle(Particle.ELECTRIC_SPARK, p.getLocation().add(0, 1.0, 0), 20, 0.4, 0.6, 0.4, 0.15);
                           });
                       }
                       case VOID -> {
                           p.setVelocity(eye.getDirection().multiply(-1.8).setY(0.4));
                           w.playSound(eye, Sound.ENTITY_ENDERMAN_TELEPORT, 2.5f, 0.6f);
                           pl.spawnTask(duration, 2, step -> {
-                              BlissAspects.drawDenseRing(p.getLocation().add(0, 0.6, 0), 2.0, Particle.PORTAL, 32, 2);
+                              BlissAspects.drawDenseRing(p.getLocation().add(0, 0.6, 0), 2.4, Particle.PORTAL, 40, 3);
                           });
                       }
                       case PHANTOM -> {
@@ -727,8 +745,8 @@ jobs:
                           p.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, duration, 0, false, false));
                           w.playSound(eye, Sound.ENTITY_VEX_CHARGE, 2.5f, 0.7f);
                           pl.spawnTask(duration, 2, step -> {
-                              w.spawnParticle(Particle.SOUL, p.getLocation().add(0, 0.8, 0), 15, 0.4, 0.8, 0.4, 0.05);
-                              w.spawnParticle(Particle.SQUID_INK, p.getLocation().add(0, 0.2, 0), 10, 0.3, 0.2, 0.3, 0.01);
+                              w.spawnParticle(Particle.SOUL, p.getLocation().add(0, 0.8, 0), 20, 0.4, 0.8, 0.4, 0.05);
+                              w.spawnParticle(Particle.SQUID_INK, p.getLocation().add(0, 0.2, 0), 15, 0.3, 0.2, 0.3, 0.02);
                           });
                           Bukkit.getScheduler().runTaskLater(pl, () -> ghost.remove(p.getUniqueId()), duration);
                       }
@@ -736,7 +754,7 @@ jobs:
                           parry.add(p.getUniqueId());
                           w.playSound(eye, Sound.ITEM_SHIELD_BLOCK, 2.5f, 1.3f);
                           pl.spawnTask(duration, 2, step -> {
-                              BlissAspects.drawDenseRing(p.getLocation().add(0, 1.0, 0), 2.2, Particle.CRIT, 28, 2);
+                              BlissAspects.drawDenseRing(p.getLocation().add(0, 1.0, 0), 2.5, Particle.CRIT, 36, 3);
                           });
                           Bukkit.getScheduler().runTaskLater(pl, () -> parry.remove(p.getUniqueId()), duration);
                       }
@@ -744,7 +762,7 @@ jobs:
                   return true;
               }
 
-              // MOVE 3: SUSTAINED CROWD CONTROL (Left Click)
+              // MOVE 3: SUSTAINED CROWD CONTROL
               private boolean castMove3(Player p, AspectType a, int tier, double dM, double cM) {
                   String k = "m3";
                   double baseCd = cd.getConfigCooldown(a, 3);
@@ -754,10 +772,10 @@ jobs:
                   World w = p.getWorld(); Location loc = p.getLocation();
                   w.playSound(loc, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 2.5f, 1.2f);
 
-                  int dur = 80 + (tier * 15);
+                  int dur = 70 + (tier * 10);
                   pl.spawnTask(dur, 2, step -> {
-                      BlissAspects.drawDenseRing(loc, 4.0, Particle.WITCH, 40, 2);
-                      BlissAspects.drawDenseRing(loc, 2.0, Particle.WITCH, 20, 1);
+                      BlissAspects.drawDenseRing(loc, 4.5, Particle.WITCH, 48, 3);
+                      BlissAspects.drawDenseRing(loc, 2.2, Particle.WITCH, 24, 2);
                       for (Entity e : loc.getWorld().getNearbyEntities(loc, 6.0, 3.5, 6.0)) if (e instanceof LivingEntity tg && tg != p) {
                           tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 3));
                           tg.damage(applyExecute(tg, 1.6 * dM, tier), p);
@@ -766,7 +784,7 @@ jobs:
                   return true;
               }
 
-              // MOVE 4: UNIQUE CATACLYSMIC DOMAINS
+              // MOVE 4: UNIQUE ULTIMATE DOMAINS (Drop Key 'Q')
               private void castMove4(Player p, AspectType a, int tier, double dM, double cM) {
                   String k = "m4";
                   double baseCd = cd.getConfigCooldown(a, 4);
@@ -774,7 +792,7 @@ jobs:
                   cd.setCooldown(p, k, baseCd * cM);
 
                   World w = p.getWorld(); Location c = p.getLocation();
-                  int dur = 120 + (tier * 20); // 6 to 8 seconds
+                  int dur = 100 + (tier * 15); // Clean 5 to 7 seconds
 
                   p.sendMessage(Component.text("✦ UNLEASHED DOMAIN: " + a.getM4() + " ✦", NamedTextColor.GOLD).decorate(TextDecoration.BOLD));
 
@@ -782,10 +800,10 @@ jobs:
                       case TERRA -> { // Tectonic Cataclysm
                           w.playSound(c, Sound.ENTITY_GENERIC_EXPLODE, 2.5f, 0.4f);
                           w.playSound(c, Sound.BLOCK_ANVIL_LAND, 2.0f, 0.5f);
-                          pl.spawnTask(dur, 3, step -> {
-                              double radius = 3.0 + ((step % 30) * 0.25);
-                              BlissAspects.drawDenseRing(c, radius, Particle.BLOCK, 48, 3);
-                              w.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, c, 12, 4.0, 0.4, 4.0, 0.05);
+                          pl.spawnTask(dur, 2, step -> {
+                              double radius = 3.0 + ((step % 25) * 0.28);
+                              BlissAspects.drawDenseRing(c, radius, Particle.BLOCK, 56, 4);
+                              w.spawnParticle(Particle.POOF, c, 15, 4.0, 0.4, 4.0, 0.05);
                               for (Entity e : c.getWorld().getNearbyEntities(c, 8.5, 4.0, 8.5)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.damage(applyExecute(tg, 3.2 * dM, tier), p);
                                   tg.setVelocity(new Vector(0, 0.45, 0));
@@ -797,7 +815,7 @@ jobs:
                           w.playSound(c, Sound.ENTITY_PLAYER_HURT_FREEZE, 2.0f, 1.0f);
                           pl.spawnTask(dur, 2, step -> {
                               BlissAspects.drawDenseDome(c, 7.5, Particle.SNOWFLAKE, 5);
-                              BlissAspects.drawDenseRing(c, 4.0, Particle.END_ROD, 32, 1);
+                              BlissAspects.drawDenseRing(c, 4.0, Particle.END_ROD, 40, 2);
                               for (Entity e : c.getWorld().getNearbyEntities(c, 7.5, 4.5, 7.5)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.damage(applyExecute(tg, 2.8 * dM, tier), p);
                                   tg.setFreezeTicks(350);
@@ -808,10 +826,10 @@ jobs:
                       case REAPER -> { // Harvesting Eclipse
                           w.playSound(c, Sound.ENTITY_WITHER_SPAWN, 2.0f, 1.2f);
                           pl.spawnTask(dur, 2, step -> {
-                              BlissAspects.drawDenseRing(c.clone().add(0, 0.5, 0), 7.0, Particle.SOUL_FIRE_FLAME, 48, 2);
-                              BlissAspects.drawDenseRing(c.clone().add(0, 1.5, 0), 4.5, Particle.SCULK_SOUL, 24, 1);
+                              BlissAspects.drawDenseRing(c.clone().add(0, 0.5, 0), 7.5, Particle.SOUL_FIRE_FLAME, 56, 3);
+                              BlissAspects.drawDenseRing(c.clone().add(0, 1.5, 0), 4.5, Particle.SCULK_SOUL, 32, 2);
                               double stolen = 0;
-                              for (Entity e : c.getWorld().getNearbyEntities(c, 7.0, 4.0, 7.0)) if (e instanceof LivingEntity tg && tg != p) {
+                              for (Entity e : c.getWorld().getNearbyEntities(c, 7.5, 4.0, 7.5)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.damage(applyExecute(tg, 2.5 * dM, tier), p);
                                   tg.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 60, 1));
                                   stolen += 1.0;
@@ -823,10 +841,10 @@ jobs:
                           w.playSound(c, Sound.ENTITY_ENDER_DRAGON_GROWL, 2.5f, 0.9f);
                           w.playSound(c, Sound.ENTITY_RAVAGER_ATTACK, 2.0f, 0.6f);
                           pl.spawnTask(dur, 2, step -> {
-                              BlissAspects.drawDenseRing(c, 8.0, Particle.LAVA, 40, 2);
-                              BlissAspects.drawDenseRing(c, 5.0, Particle.FLAME, 32, 2);
-                              w.spawnParticle(Particle.LAVA, c, 15, 3.5, 1.0, 3.5);
-                              for (Entity e : c.getWorld().getNearbyEntities(c, 8.0, 4.0, 8.0)) if (e instanceof LivingEntity tg && tg != p) {
+                              BlissAspects.drawDenseRing(c, 8.5, Particle.LAVA, 48, 3);
+                              BlissAspects.drawDenseRing(c, 5.0, Particle.FLAME, 40, 3);
+                              w.spawnParticle(Particle.LAVA, c, 20, 3.5, 1.0, 3.5);
+                              for (Entity e : c.getWorld().getNearbyEntities(c, 8.5, 4.0, 8.5)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.damage(applyExecute(tg, 3.8 * dM, tier), p);
                                   tg.setFireTicks(80);
                               }
@@ -835,12 +853,12 @@ jobs:
                       case AEGIS -> { // Judgement Cataclysm
                           w.playSound(c, Sound.ITEM_TRIDENT_THUNDER, 2.5f, 1.4f);
                           w.playSound(c, Sound.BLOCK_BEACON_ACTIVATE, 2.0f, 1.8f);
-                          pl.spawnTask(dur, 4, step -> {
+                          pl.spawnTask(dur, 3, step -> {
                               double angle = (step * 0.4);
-                              Location pillar = c.clone().add(Math.cos(angle) * 5.0, 0, Math.sin(angle) * 5.0);
-                              BlissAspects.drawDenseRing(pillar, 2.0, Particle.END_ROD, 24, 1);
+                              Location pillar = c.clone().add(Math.cos(angle) * 5.5, 0, Math.sin(angle) * 5.5);
+                              BlissAspects.drawDenseRing(pillar, 2.2, Particle.END_ROD, 32, 2);
                               w.spawnParticle(Particle.FLASH, pillar.clone().add(0, 1.0, 0), 2);
-                              for (Entity e : c.getWorld().getNearbyEntities(c, 8.0, 6.0, 8.0)) if (e instanceof LivingEntity tg && tg != p) {
+                              for (Entity e : c.getWorld().getNearbyEntities(c, 8.5, 6.0, 8.5)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.damage(applyExecute(tg, 3.5 * dM, tier), p);
                                   tg.setFireTicks(80);
                               }
@@ -849,8 +867,8 @@ jobs:
                       case BLOOM -> { // Verdant Eden
                           w.playSound(c, Sound.ENTITY_ALLAY_ITEM_TAKEN, 2.5f, 0.6f);
                           pl.spawnTask(dur, 2, step -> {
-                              BlissAspects.drawDenseDome(c, 7.5, Particle.SPORE_BLOSSOM_AIR, 5);
-                              BlissAspects.drawDenseRing(c, 4.5, Particle.HAPPY_VILLAGER, 32, 2);
+                              BlissAspects.drawDenseDome(c, 7.5, Particle.HAPPY_VILLAGER, 5);
+                              BlissAspects.drawDenseRing(c, 4.5, Particle.HAPPY_VILLAGER, 40, 3);
                               p.setHealth(Math.min(p.getMaxHealth(), p.getHealth() + 0.6));
                               for (Entity e : c.getWorld().getNearbyEntities(c, 7.5, 4.0, 7.5)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.damage(applyExecute(tg, 2.2 * dM, tier), p);
@@ -860,12 +878,12 @@ jobs:
                       }
                       case STORM -> { // Overdrive Thunderstorm
                           w.playSound(c, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 2.5f, 1.5f);
-                          pl.spawnTask(dur, 6, step -> {
+                          pl.spawnTask(dur, 5, step -> {
                               double offX = (Math.random() - 0.5) * 12.0;
                               double offZ = (Math.random() - 0.5) * 12.0;
                               Location strikeLoc = c.clone().add(offX, 0, offZ);
                               w.strikeLightningEffect(strikeLoc);
-                              BlissAspects.drawDenseRing(strikeLoc, 2.5, Particle.ELECTRIC_SPARK, 24, 2);
+                              BlissAspects.drawDenseRing(strikeLoc, 2.8, Particle.ELECTRIC_SPARK, 32, 3);
                               for (Entity e : strikeLoc.getWorld().getNearbyEntities(strikeLoc, 4.0, 4.0, 4.0)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.damage(applyExecute(tg, 4.0 * dM, tier), p);
                               }
@@ -874,8 +892,8 @@ jobs:
                       case VOID -> { // Void Collapse
                           w.playSound(c, Sound.BLOCK_BEACON_DEACTIVATE, 2.5f, 0.5f);
                           pl.spawnTask(dur, 2, step -> {
-                              BlissAspects.drawDenseRing(c, 7.0, Particle.PORTAL, 48, 2);
-                              BlissAspects.drawDenseRing(c, 3.5, Particle.REVERSE_PORTAL, 24, 1);
+                              BlissAspects.drawDenseRing(c, 7.5, Particle.PORTAL, 56, 3);
+                              BlissAspects.drawDenseRing(c, 3.5, Particle.REVERSE_PORTAL, 32, 2);
                               for (Entity e : c.getWorld().getNearbyEntities(c, 8.0, 5.0, 8.0)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.setVelocity(c.toVector().subtract(tg.getLocation().toVector()).normalize().multiply(0.6));
                                   tg.damage(applyExecute(tg, 2.0 * dM, tier), p);
@@ -893,7 +911,7 @@ jobs:
                           w.playSound(c, Sound.ENTITY_VEX_CHARGE, 2.5f, 0.6f);
                           pl.spawnTask(dur, 2, step -> {
                               BlissAspects.drawDenseDome(c, 8.0, Particle.SQUID_INK, 5);
-                              w.spawnParticle(Particle.SOUL, c, 10, 4.0, 1.0, 4.0, 0.05);
+                              w.spawnParticle(Particle.SOUL, c, 15, 4.0, 1.0, 4.0, 0.05);
                               for (Entity e : c.getWorld().getNearbyEntities(c, 8.0, 4.0, 8.0)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.addPotionEffect(new PotionEffect(PotionEffectType.DARKNESS, 60, 1));
                                   tg.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 60, 1));
@@ -907,9 +925,9 @@ jobs:
                           p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, dur, 3));
                           p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, dur, 2));
                           pl.spawnTask(dur, 2, step -> {
-                              BlissAspects.drawDenseDome(p.getLocation(), 4.0, Particle.CRIT, 5);
-                              BlissAspects.drawDenseRing(p.getLocation().add(0, 0.2, 0), 3.0, Particle.ENCHANTED_HIT, 24, 2);
-                              for (Entity e : p.getNearbyEntities(4.0, 3.0, 4.0)) if (e instanceof LivingEntity tg && tg != p) {
+                              BlissAspects.drawDenseDome(p.getLocation(), 4.2, Particle.CRIT, 5);
+                              BlissAspects.drawDenseRing(p.getLocation().add(0, 0.2, 0), 3.2, Particle.ENCHANTED_HIT, 32, 3);
+                              for (Entity e : p.getNearbyEntities(4.2, 3.0, 4.2)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.setVelocity(tg.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(0.8));
                               }
                           });
@@ -990,7 +1008,63 @@ jobs:
               }
           }""")
 
-          # Build Texture Pack (Resource Pack) with CustomModelData
+          # Build Texture Pack (Resource Pack) with Native 16x16 Pixel Art PNG Generator
+          def make_gem_png(color, accent):
+              w, h = 16, 16
+              mask = [
+                  0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
+                  0,0,0,0,1,1,2,3,3,2,1,1,0,0,0,0,
+                  0,0,0,1,2,3,3,3,3,3,2,2,1,0,0,0,
+                  0,0,1,2,3,3,2,2,2,2,3,2,2,1,0,0,
+                  0,1,2,3,2,2,2,2,2,2,2,2,2,2,1,0,
+                  0,1,3,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                  1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,
+                  1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,
+                  1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,
+                  0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                  0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                  0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,
+                  0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0,
+                  0,0,0,0,1,1,2,2,2,2,1,1,0,0,0,0,
+                  0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+              ]
+              raw = bytearray()
+              for y in range(h):
+                  raw.append(0)
+                  for x in range(w):
+                      val = mask[y*16 + x]
+                      if val == 0:
+                          raw.extend([0, 0, 0, 0])
+                      elif val == 1:
+                          raw.extend([max(0, accent[0]//2), max(0, accent[1]//2), max(0, accent[2]//2), 255])
+                      elif val == 2:
+                          raw.extend([color[0], color[1], color[2], 255])
+                      elif val == 3:
+                          raw.extend([min(255, color[0]+65), min(255, color[1]+65), min(255, color[2]+65), 255])
+
+              def chunk(tag, data):
+                  return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xffffffff)
+
+              png = b"\x89PNG\r\n\x1a\n"
+              png += chunk(b"IHDR", struct.pack(">IIBBBBB", 16, 16, 8, 6, 0, 0, 0))
+              png += chunk(b"IDAT", zlib.compress(bytes(raw)))
+              png += chunk(b"IEND", b"")
+              return png
+
+          gem_colors = {
+              "terra":   ([184, 115, 51], [139, 69, 19]),
+              "frost":   ([112, 214, 255], [224, 251, 252]),
+              "reaper":  ([90, 24, 154], [0, 245, 212]),
+              "rage":    ([217, 4, 41], [255, 84, 0]),
+              "aegis":   ([255, 209, 102], [255, 243, 176]),
+              "bloom":   ([56, 176, 0], [255, 112, 166]),
+              "storm":   ([0, 245, 212], [255, 238, 50]),
+              "void":    ([60, 9, 108], [157, 78, 221]),
+              "phantom": ([108, 117, 125], [46, 196, 182]),
+              "knight":  ([222, 226, 230], [233, 216, 166])
+          }
+
           save("resourcepack/pack.mcmeta", r"""{"pack":{"pack_format":34,"description":"BlissAspects Custom Gems Texture Pack"}}""")
           save("resourcepack/assets/minecraft/models/item/nether_star.json", r"""{
             "parent": "minecraft:item/generated",
@@ -1009,14 +1083,16 @@ jobs:
             ]
           }""")
 
-          # Template models for each gem
-          for gem in ["terra", "frost", "reaper", "rage", "aegis", "bloom", "storm", "void", "phantom", "knight"]:
+          for gem, (col, acc) in gem_colors.items():
               save(f"resourcepack/assets/minecraft/models/item/custom/{gem}_gem.json", f"""{{
                 "parent": "minecraft:item/generated",
                 "textures": {{ "layer0": "minecraft:item/custom/{gem}_gem" }}
               }}""")
+              tex_path = f"resourcepack/assets/minecraft/textures/item/custom/{gem}_gem.png"
+              os.makedirs(os.path.dirname(tex_path), exist_ok=True)
+              with open(tex_path, "wb") as f:
+                  f.write(make_gem_png(col, acc))
 
-          # Zip the resource pack
           with zipfile.ZipFile("BlissAspects-ResourcePack.zip", 'w', zipfile.ZIP_DEFLATED) as zipf:
               for root, dirs, files in os.walk("resourcepack"):
                   for file in files:
@@ -1030,10 +1106,10 @@ jobs:
       - name: Upload Plugin Jar
         uses: actions/upload-artifact@v4
         with:
-          name: BlissAspects-8.0-Plugin
+          name: BlissAspects-9.0-Plugin
           path: target/BlissAspects.jar
 
-      - name: Upload Resource Pack Zip
+      - name: Upload Texture Pack with PNGs
         uses: actions/upload-artifact@v4
         with:
           name: BlissAspects-ResourcePack
