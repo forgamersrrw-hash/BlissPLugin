@@ -33,12 +33,7 @@ jobs:
               <version>16.0.0</version>
               <packaging>jar</packaging>
               <properties><java.version>21</java.version><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding></properties>
-              <repositories>
-                  <repository>
-                      <id>papermc</id>
-                      <url>https://repo.papermc.io/repository/maven-public/</url>
-                  </repository>
-              </repositories>
+              <repositories><repository><id>papermc</id><url>https://repo.papermc.io/repository/maven-public/</url></repository></repositories>
               <dependencies><dependency><groupId>io.papermc.paper</groupId><artifactId>paper-api</artifactId><version>1.21.1-R0.1-SNAPSHOT</version><scope>provided</scope></dependency></dependencies>
               <build><finalName>BlissAspects</finalName><plugins><plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.13.0</version><configuration><source>21</source><target>21</target></configuration></plugin></plugins></build>
           </project>""")
@@ -52,58 +47,58 @@ jobs:
               permission: bliss.use
               description: Bliss Aspect gem command""")
 
-          save("src/main/resources/config.yml", r"""# BlissAspects Custom Cooldowns (in seconds)
+          save("src/main/resources/config.yml", r"""# BlissAspects Hardcore SMP Cooldowns (in seconds)
           cooldowns:
             TERRA:
-              move1: 14.0
+              move1: 15.0
               move2: 24.0
-              move3: 18.0
-              move4: 65.0
+              move3: 20.0
+              move4: 80.0
             FROST:
+              move1: 14.0
+              move2: 22.0
+              move3: 18.0
+              move4: 75.0
+            REAPER:
+              move1: 16.0
+              move2: 25.0
+              move3: 22.0
+              move4: 85.0
+            RAGE:
               move1: 12.0
               move2: 20.0
               move3: 18.0
-              move4: 55.0
-            REAPER:
-              move1: 14.0
-              move2: 22.0
-              move3: 18.0
-              move4: 65.0
-            RAGE:
-              move1: 12.0
-              move2: 22.0
-              move3: 16.0
-              move4: 65.0
+              move4: 90.0
             AEGIS:
               move1: 15.0
-              move2: 26.0
-              move3: 18.0
-              move4: 60.0
+              move2: 28.0
+              move3: 22.0
+              move4: 80.0
             BLOOM:
-              move1: 12.0
-              move2: 22.0
-              move3: 18.0
-              move4: 55.0
+              move1: 14.0
+              move2: 25.0
+              move3: 20.0
+              move4: 75.0
             STORM:
               move1: 14.0
               move2: 18.0
-              move3: 18.0
-              move4: 50.0
+              move3: 22.0
+              move4: 80.0
             VOID:
               move1: 16.0
-              move2: 20.0
-              move3: 18.0
-              move4: 60.0
+              move2: 25.0
+              move3: 24.0
+              move4: 85.0
             PHANTOM:
-              move1: 14.0
-              move2: 26.0
-              move3: 16.0
-              move4: 55.0
-            KNIGHT:
               move1: 12.0
-              move2: 20.0
-              move3: 16.0
-              move4: 55.0""")
+              move2: 28.0
+              move3: 20.0
+              move4: 80.0
+            KNIGHT:
+              move1: 14.0
+              move2: 22.0
+              move3: 24.0
+              move4: 80.0""")
 
           save("src/main/java/com/bliss/aspects/BlissAspects.java", r"""package com.bliss.aspects;
 
@@ -112,6 +107,7 @@ jobs:
           import org.bukkit.*;
           import org.bukkit.Color;
           import org.bukkit.Particle.DustOptions;
+          import org.bukkit.attribute.Attribute;
           import org.bukkit.command.*;
           import org.bukkit.enchantments.Enchantment;
           import org.bukkit.entity.*;
@@ -156,23 +152,25 @@ jobs:
                           Location loc = p.getLocation().add(0, 0.7, 0);
 
                           if (tier == 5) {
-                              VectorMath.drawDenseRing(loc.clone().add(0, 1.4, 0), 0.45, Particle.END_ROD, 14, 1);
-                              VectorMath.spawnDust(loc.clone().add(0, 1.4, 0), t.getPrimaryColor(), 1.2f, 3);
+                              VectorMath.drawTorus(loc.clone().add(0, 1.6, 0), 0.5, 0.1, Particle.END_ROD, 1);
+                              VectorMath.spawnDust(loc.clone().add(0, 1.5, 0), t.getPrimaryColor(), 1.2f, 3);
                           }
 
                           VectorMath.spawnDust(loc, t.getPrimaryColor(), 0.9f, tier >= 3 ? 5 : 2);
                           switch (t) {
                               case STORM -> {
-                                  p.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, loc, tier >= 3 ? 8 : 3, 0.3, 0.4, 0.3, 0.05);
+                                  p.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, loc, tier >= 3 ? 6 : 2, 0.4, 0.5, 0.4, 0.05);
                                   p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 40, tier >= 4 ? 1 : 0, false, false, false));
                               }
                               case TERRA -> p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 40, tier >= 4 ? 1 : 0, false, false, false));
                               case BLOOM -> p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 40, tier >= 5 ? 1 : 0, false, false, false));
                               case RAGE -> {
-                                  double maxHp = Objects.requireNonNull(p.getAttribute(Attribute.GENERIC_MAX_HEALTH)).getValue();
-                                  if (p.getHealth() <= maxHp * 0.5) {
-                                      p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 40, tier >= 4 ? 1 : 0, false, false, false));
-                                      p.getWorld().spawnParticle(Particle.FLAME, loc, 6, 0.2, 0.3, 0.2, 0.02);
+                                  if (p.getAttribute(Attribute.GENERIC_MAX_HEALTH) != null) {
+                                      double maxHp = p.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue();
+                                      if (p.getHealth() <= maxHp * 0.5) {
+                                          p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 40, tier >= 4 ? 1 : 0, false, false, false));
+                                          p.getWorld().spawnParticle(Particle.FLAME, loc, 4, 0.3, 0.4, 0.3, 0.02);
+                                      }
                                   }
                               }
                               case VOID -> {
@@ -212,13 +210,13 @@ jobs:
               public static void spawnDust(Location loc, Color c, float size, int count) {
                   World w = loc.getWorld();
                   if (w == null) return;
-                  w.spawnParticle(Particle.DUST, loc, count, 0.2, 0.2, 0.2, 0.0, new DustOptions(c, size));
+                  w.spawnParticle(Particle.DUST, loc, count, 0.25, 0.25, 0.25, 0.0, new DustOptions(c, size));
               }
 
               public static void drawDustRing(Location center, double radius, Color c, int points) {
                   World w = center.getWorld();
                   if (w == null) return;
-                  DustOptions dust = new DustOptions(c, 1.3f);
+                  DustOptions dust = new DustOptions(c, 1.4f);
                   for (int i = 0; i < points; i++) {
                       double a = 2.0 * Math.PI * i / points;
                       Location pt = center.clone().add(Math.cos(a) * radius, 0.05, Math.sin(a) * radius);
@@ -226,103 +224,83 @@ jobs:
                   }
               }
 
-              public static void drawMagicSeal(Location center, double radius, double rot, Color c1, Color c2, Particle accent) {
-                  World w = center.getWorld();
-                  if (w == null) return;
-                  DustOptions d1 = new DustOptions(c1, 1.4f);
-                  DustOptions d2 = new DustOptions(c2, 1.1f);
-                  for (int i = 0; i < 48; i++) {
-                      double a = 2.0 * Math.PI * i / 48 + rot;
-                      w.spawnParticle(Particle.DUST, center.clone().add(Math.cos(a) * radius, 0.05, Math.sin(a) * radius), 1, 0.0, 0.0, 0.0, 0.0, d1);
-                  }
-                  for (int i = 0; i < 24; i++) {
-                      double a = 2.0 * Math.PI * i / 24 - rot;
-                      w.spawnParticle(Particle.DUST, center.clone().add(Math.cos(a) * (radius * 0.55), 0.05, Math.sin(a) * (radius * 0.55)), 1, 0.0, 0.0, 0.0, 0.0, d2);
-                  }
-                  for (int i = 0; i < 6; i++) {
-                      double a = 2.0 * Math.PI * i / 6 + rot;
-                      Location spoke = center.clone().add(Math.cos(a) * radius, 0.1, Math.sin(a) * radius);
-                      if (accent != null) w.spawnParticle(accent, spoke, 1, 0.0, 0.0, 0.0, 0.0);
-                  }
-              }
-
-              public static void drawOrbitals(Location center, double radius, double time, Color c, Particle accent) {
-                  World w = center.getWorld();
-                  if (w == null) return;
-                  DustOptions dust = new DustOptions(c, 1.6f);
-                  for (int i = 0; i < 3; i++) {
-                      double a = time + (i * (2.0 * Math.PI / 3.0));
-                      Location orb = center.clone().add(Math.cos(a) * radius, 1.0 + Math.sin(a * 2.0) * 0.25, Math.sin(a) * radius);
-                      w.spawnParticle(Particle.DUST, orb, 4, 0.08, 0.08, 0.08, 0.0, dust);
-                      if (accent != null) w.spawnParticle(accent, orb, 1, 0.0, 0.0, 0.0, 0.0);
-                  }
-              }
-
-              public static void drawSkyPillar(Location base, double height, Color c, Particle accent) {
-                  World w = base.getWorld();
-                  if (w == null) return;
-                  DustOptions dust = new DustOptions(c, 1.8f);
-                  for (double y = 0; y < height; y += 0.8) {
-                      Location pt = base.clone().add(0, y, 0);
-                      w.spawnParticle(Particle.DUST, pt, 3, 0.25, 0.1, 0.25, 0.0, dust);
-                      if (accent != null && y % 2.4 < 0.8) {
-                          w.spawnParticle(accent, pt, 2, 0.15, 0.15, 0.15, 0.02);
-                      }
-                  }
-              }
-
-              public static void drawDenseRing(Location center, double radius, Particle p, int points, int perPoint) {
+              public static void drawParticleRing(Location center, double radius, Particle p, int points, double speed) {
                   World w = center.getWorld();
                   if (w == null) return;
                   for (int i = 0; i < points; i++) {
                       double a = 2.0 * Math.PI * i / points;
-                      w.spawnParticle(p, center.clone().add(Math.cos(a) * radius, 0.05, Math.sin(a) * radius), perPoint, 0.02, 0.02, 0.02, 0.01);
+                      Location pt = center.clone().add(Math.cos(a) * radius, 0.05, Math.sin(a) * radius);
+                      w.spawnParticle(p, pt, 1, 0.02, 0.02, 0.02, speed);
                   }
               }
 
-              public static void drawHelixBeam(Location start, Vector dir, double maxDist, Color c, Particle accent) {
-                  World w = start.getWorld();
+              public static void drawTorus(Location center, double R, double r, Particle p, int countPerTick) {
+                  World w = center.getWorld();
                   if (w == null) return;
-                  DustOptions dust = new DustOptions(c, 1.4f);
-                  for (double d = 0; d < maxDist; d += 0.3) {
-                      Location base = start.clone().add(dir.clone().multiply(d));
-                      double a = d * 5.0;
-                      Vector ortho = new Vector(-dir.getZ(), 0.0, dir.getX());
-                      if (ortho.lengthSquared() < 0.001) ortho = new Vector(1.0, 0.0, 0.0);
-                      else ortho.normalize().multiply(0.7);
+                  for (int i = 0; i < countPerTick; i++) {
+                      double theta = Math.random() * 2 * Math.PI;
+                      double phi = Math.random() * 2 * Math.PI;
+                      double x = (R + r * Math.cos(theta)) * Math.cos(phi);
+                      double y = r * Math.sin(theta);
+                      double z = (R + r * Math.cos(theta)) * Math.sin(phi);
+                      w.spawnParticle(p, center.clone().add(x, y, z), 1, 0, 0, 0, 0.0);
+                  }
+              }
 
-                      Location p1 = base.clone().add(ortho.clone().rotateAroundAxis(dir, a));
-                      Location p2 = base.clone().add(ortho.clone().rotateAroundAxis(dir, a + Math.PI));
-                      w.spawnParticle(Particle.DUST, p1, 1, 0.0, 0.0, 0.0, 0.0, dust);
-                      w.spawnParticle(Particle.DUST, p2, 1, 0.0, 0.0, 0.0, 0.0, dust);
-                      if (accent != null && d % 1.2 < 0.3) {
-                          w.spawnParticle(accent, base, 2, 0.05, 0.05, 0.05, 0.02);
+              public static void drawCylinder(Location center, double radius, double height, Particle p, int density) {
+                  World w = center.getWorld();
+                  if (w == null) return;
+                  for (double y = 0; y <= height; y += 0.5) {
+                      for (int i = 0; i < density; i++) {
+                          double a = 2.0 * Math.PI * i / density;
+                          w.spawnParticle(p, center.clone().add(Math.cos(a) * radius, y, Math.sin(a) * radius), 1, 0, 0, 0, 0);
                       }
+                  }
+              }
+
+              public static void drawVortex(Location center, double maxRadius, double height, Color c) {
+                  World w = center.getWorld();
+                  if (w == null) return;
+                  DustOptions dust = new DustOptions(c, 1.5f);
+                  for (double y = 0; y <= height; y += 0.2) {
+                      double currentRadius = maxRadius * (1.0 - (y / height));
+                      double a = y * 8.0;
+                      Location pt = center.clone().add(Math.cos(a) * currentRadius, y, Math.sin(a) * currentRadius);
+                      w.spawnParticle(Particle.DUST, pt, 2, 0.1, 0.1, 0.1, 0, dust);
+                  }
+              }
+
+              public static void drawDome(Location center, double radius, Particle p, int density) {
+                  World w = center.getWorld();
+                  if (w == null) return;
+                  for (double y = 0; y <= radius; y += 0.5) {
+                      double r = Math.sqrt(radius * radius - y * y);
+                      drawParticleRing(center.clone().add(0, y, 0), r, p, density, 0.01);
                   }
               }
           }
 
           enum AspectType {
               TERRA("Terra", NamedTextColor.GOLD, 1001, Color.fromRGB(218, 140, 40), Color.fromRGB(110, 80, 50),
-                    "Spire Eruption", "Titan Bastion", "Tectonic Quake", "Wrath of Pangaea", "Knockback Poise & Stone Density", "LEGENDARY"),
+                    "Earthshatter Leap", "Petrifying Gaze", "Seismic Pull", "Tectonic Execution", "Knockback II & Protection III", "LEGENDARY"),
               FROST("Frost", TextColor.color(0x70D6FF), 1002, Color.fromRGB(100, 220, 255), Color.fromRGB(240, 255, 255),
-                    "Icicle Volley", "Permafrost Surge", "Glacial Coffin", "Absolute Zero Domain", "Frost Walker II & Absolute Chill", "RARE"),
+                    "Glacial Piercer", "Flash Freeze", "Ice Skates", "Absolute Zero", "Frost Walker II & Absolute Chill", "RARE"),
               REAPER("Reaper", NamedTextColor.DARK_PURPLE, 1003, Color.fromRGB(0, 255, 210), Color.fromRGB(90, 20, 160),
-                    "Soul Guillotine", "Stygian Shroud", "Grave Hook", "The Pale Harvest", "Soul Siphon & Wither Decay", "MYTHIC"),
+                    "Scythe of Anguish", "Wraith's Deceit", "Soul Shackles", "Domain of the Damned", "Sweeping Edge III & Soul Siphon", "MYTHIC"),
               RAGE("Rage", NamedTextColor.RED, 1004, Color.fromRGB(255, 25, 25), Color.fromRGB(255, 120, 0),
-                    "Volcanic Fissure", "Ravage Dash", "Magma Leash", "Cataclysmic Caldera", "Fire Aspect II & 100% AUTOCRIT", "LEGENDARY"),
+                    "Bloodthirst Strike", "Infernal Charge", "Ignition Roar", "Supernova", "Fire Aspect II & 100% AUTOCRIT", "LEGENDARY"),
               AEGIS("Aegis", TextColor.color(0xFFD166), 1005, Color.fromRGB(255, 215, 60), Color.fromRGB(255, 255, 220),
-                    "Sunfire Lance", "Sanctuary Dome", "Solar Nova", "Judgment of Heavens", "Protection IV & Thorns III", "EPIC"),
+                    "Spear of Light", "Heavenly Reprieve", "Blinding Retribution", "Grand Sanctuary", "Protection IV & Thorns III", "EPIC"),
               BLOOM("Bloom", NamedTextColor.GREEN, 1006, Color.fromRGB(60, 255, 60), Color.fromRGB(255, 120, 180),
-                    "Thorn Barrage", "Verdant Chrysalis", "Entangling Briars", "World Tree Genesis", "Mending & Continuous Regrowth", "RARE"),
+                    "Venomous Spores", "Root Grasp", "Petal Dance", "Wrath of Nature", "Mending & Continuous Regrowth", "RARE"),
               STORM("Storm", NamedTextColor.AQUA, 1007, Color.fromRGB(0, 240, 255), Color.fromRGB(255, 240, 40),
-                    "Forked Lightning", "Thunder Blink", "Magnetic Vortex", "Wrath of the Tempest", "Channeling & Velocity Surge", "MYTHIC"),
+                    "Thunderclap", "Riding the Lightning", "Static Cage", "Eye of the Storm", "Channeling & Velocity Surge", "MYTHIC"),
               VOID("Void", TextColor.color(0x9D4EDD), 1008, Color.fromRGB(140, 0, 255), Color.fromRGB(40, 0, 70),
-                    "Singularity Beam", "Space-Time Fold", "Gravitational Inversion", "Singularity Zero", "Feather Falling IV & Void Repel", "TRANSCENDENT"),
+                    "Gravity Well", "Spatial Swap", "Nullify", "Event Horizon", "Feather Falling IV & Void Repel", "TRANSCENDENT"),
               PHANTOM("Phantom", NamedTextColor.DARK_GRAY, 1009, Color.fromRGB(40, 220, 180), Color.fromRGB(80, 80, 90),
-                    "Assassinate", "Mist Walk", "Smoke Decoy", "Midnight Requiem", "Swift Sneak III & True Invisibility", "EPIC"),
+                    "True Backstab", "Shadow Clone", "Phase Shift", "Nightmare Realm", "Swift Sneak III & True Invisibility", "EPIC"),
               KNIGHT("Knight", NamedTextColor.WHITE, 1010, Color.fromRGB(240, 240, 255), Color.fromRGB(255, 200, 80),
-                    "Shield Rush", "Iron Bastion", "Ground Breaker", "Colossus Stand", "+6 Armor & Unyielding Poise", "RARE");
+                    "Shield Bash", "Iron Maiden", "Disarm", "Juggernaut's Arena", "+6 Armor & Unyielding Poise", "RARE");
 
               private final String d, m1, m2, m3, m4, p, rarity;
               private final int cmd;
@@ -415,13 +393,13 @@ jobs:
                   lore.add(Component.text("  " + a.getPassiveDesc(), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.empty());
                   lore.add(Component.text("✦ [R-CLICK]  " + a.getM1(), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("  Primary directional projectile / piercing burst", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("  Tactical primary engagement", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("✦ [SHIFT+R]  " + a.getM2(), NamedTextColor.AQUA).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("  Tactical defensive stance / evasive mobility", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("  Evasive / Defensive reposition", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("✦ [L-CLICK]  " + a.getM3(), NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("  Ground rune snare / crowd-control lock", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("  Targeted crowd-control / disruption", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("✦ [PRESS Q]  " + a.getM4() + " [ULTIMATE]", NamedTextColor.RED).decorate(TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("  Cataclysmic room-clearing 3-stage ritual", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("  Massive Area-of-Effect Domain Expansion", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("──────────────────────────────", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("✦ STAT BONUSES: ", NamedTextColor.LIGHT_PURPLE).append(Component.text("+" + (tier * 10) + "% DMG ", NamedTextColor.RED)).append(Component.text("| -" + (tier * 6) + "% CD", NamedTextColor.GREEN)).decoration(TextDecoration.ITALIC, false));
                   if (tier >= 4) lore.add(Component.text("☠ Execute: +30% True Damage on targets below 35% HP", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
@@ -472,7 +450,9 @@ jobs:
               private final BlissAspects pl;
               private final CooldownManager cd;
               private final GemManager gm;
-              private final Set<UUID> parry = new HashSet<>(), ghost = new HashSet<>();
+              private final Map<UUID, UUID> tethered = new HashMap<>();
+              private final Map<UUID, Location> rootSnare = new HashMap<>();
+              private final Set<UUID> ironMaiden = new HashSet<>();
 
               public AspectListener(BlissAspects pl, CooldownManager cd, GemManager gm) {
                   this.pl = pl; this.cd = cd; this.gm = gm;
@@ -484,12 +464,13 @@ jobs:
                   String name = m.name();
                   return name.contains("POTION") || name.equals("BOW") || name.equals("CROSSBOW")
                           || name.equals("SHIELD") || name.equals("ENDER_PEARL") || name.equals("WIND_CHARGE")
-                          || name.equals("GOLDEN_APPLE") || name.equals("ENCHANTED_GOLDEN_APPLE");
+                          || name.equals("GOLDEN_APPLE") || name.equals("ENCHANTED_GOLDEN_APPLE")
+                          || name.equals("TRIDENT");
               }
 
               private double applyExecute(LivingEntity t, double dmg, int tier) {
                   if (tier >= 4 && t != null) {
-                      double maxHp = Objects.requireNonNull(t.getAttribute(Attribute.GENERIC_MAX_HEALTH)).getValue();
+                      double maxHp = t.getAttribute(Attribute.GENERIC_MAX_HEALTH) != null ? t.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue() : 20.0;
                       if ((t.getHealth() / maxHp) <= 0.35) return dmg * 1.30;
                   }
                   return dmg;
@@ -497,6 +478,7 @@ jobs:
 
               @EventHandler(priority = EventPriority.HIGH)
               public void onHit(EntityDamageByEntityEvent e) {
+                  // RAGE: 100% Guaranteed Crit
                   if (e.getDamager() instanceof Player p) {
                       ItemStack gem = gm.getWieldedGem(p);
                       if (gem != null && gm.getGemAspect(gem) == AspectType.RAGE) {
@@ -504,17 +486,40 @@ jobs:
                           p.getWorld().spawnParticle(Particle.CRIT, e.getEntity().getLocation().add(0, 1.2, 0), 40, 0.4, 0.4, 0.4, 0.3);
                           p.getWorld().playSound(p.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1.8f, 0.7f);
                       }
+                      // PHANTOM: Backstab Multiplier
+                      if (gem != null && gm.getGemAspect(gem) == AspectType.PHANTOM) {
+                          Vector attackerDir = p.getLocation().getDirection().setY(0).normalize();
+                          Vector victimDir = e.getEntity().getLocation().getDirection().setY(0).normalize();
+                          if (attackerDir.dot(victimDir) > 0.7) { // Striking from behind
+                              e.setDamage(e.getDamage() * 3.0);
+                              p.getWorld().spawnParticle(Particle.SQUID_INK, e.getEntity().getLocation().add(0, 1.0, 0), 50, 0.3, 0.3, 0.3, 0.1);
+                              p.getWorld().playSound(p.getLocation(), Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 1.5f, 0.5f);
+                          }
+                      }
                   }
-                  if (e.getEntity() instanceof Player v && ghost.contains(v.getUniqueId())) {
+
+                  // KNIGHT: Iron Maiden Reflection
+                  if (e.getEntity() instanceof Player def && ironMaiden.contains(def.getUniqueId())) {
                       e.setCancelled(true);
-                      return;
-                  }
-                  if (e.getEntity() instanceof Player def && parry.contains(def.getUniqueId())) {
-                      e.setCancelled(true);
-                      parry.remove(def.getUniqueId());
+                      ironMaiden.remove(def.getUniqueId());
                       def.getWorld().playSound(def.getLocation(), Sound.BLOCK_ANVIL_PLACE, 1.8f, 1.8f);
-                      def.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 120, 1));
-                      if (e.getDamager() instanceof LivingEntity atk) atk.damage(8.0, def);
+                      VectorMath.drawDustRing(def.getLocation().add(0, 1, 0), 2.0, Color.WHITE, 30);
+                      if (e.getDamager() instanceof LivingEntity atk) {
+                          atk.damage(e.getDamage() * 2.0, def); // 200% Reflection
+                      }
+                  }
+              }
+
+              @EventHandler
+              public void onPlayerMove(PlayerMoveEvent e) {
+                  Player p = e.getPlayer();
+                  // Bloom Root Mechanics
+                  if (rootSnare.containsKey(p.getUniqueId())) {
+                      Location anchor = rootSnare.get(p.getUniqueId());
+                      if (e.getTo() != null && e.getTo().distanceSquared(anchor) > 1.0) {
+                          p.teleport(anchor);
+                          p.getWorld().spawnParticle(Particle.BLOCK, anchor.clone().add(0, 1, 0), 20, 0.3, 0.3, 0.3, Material.OAK_LEAVES.createBlockData());
+                      }
                   }
               }
 
@@ -523,6 +528,7 @@ jobs:
                   Player p = e.getPlayer();
                   ItemStack main = p.getInventory().getItemInMainHand();
 
+                  // Prioritize consumables over abilities
                   if (isConsumable(main.getType())) return;
 
                   ItemStack gem = gm.getWieldedGem(p);
@@ -563,7 +569,7 @@ jobs:
                   }
               }
 
-              // MOVE 1: CINEMATIC BEAMS & PIERCING TRAJECTORIES
+              // ======================= MOVE 1 (RIGHT-CLICK) =======================
               private boolean castMove1(Player p, AspectType a, int tier, double dM, double cM) {
                   String k = "m1";
                   double baseCd = cd.getConfigCooldown(a, 1);
@@ -574,133 +580,168 @@ jobs:
                   Vector dir = eye.getDirection().normalize();
 
                   switch (a) {
-                      case TERRA -> {
-                          p.setVelocity(dir.clone().setY(0.75).multiply(1.3));
-                          w.playSound(eye, Sound.ENTITY_IRON_GOLEM_ATTACK, 2.0f, 0.5f);
+                      case TERRA -> { // Earthshatter Leap
+                          p.setVelocity(dir.clone().setY(0.9).multiply(1.5));
+                          w.playSound(eye, Sound.ENTITY_BAT_TAKEOFF, 2.0f, 0.5f);
                           new BukkitRunnable() {
                               int t = 0;
                               public void run() {
-                                  if (p.isOnGround() || ++t > 25) {
+                                  if (p.isOnGround() || ++t > 40) {
                                       Location slam = p.getLocation();
-                                      w.playSound(slam, Sound.ENTITY_GENERIC_EXPLODE, 2.0f, 0.6f);
-                                      VectorMath.drawDustRing(slam, 2.8, a.getPrimaryColor(), 40);
-                                      VectorMath.drawDenseRing(slam, 3.8, Particle.BLOCK, 32, 2);
-                                      for (Entity e : slam.getWorld().getNearbyEntities(slam, 5.5, 2.5, 5.5)) if (e instanceof LivingEntity tg && tg != p) {
-                                          tg.damage(applyExecute(tg, 8.5 * dM, tier), p);
-                                          tg.setVelocity(new Vector(0, 0.45, 0));
+                                      w.playSound(slam, Sound.ENTITY_GENERIC_EXPLODE, 2.5f, 0.5f);
+                                      // Erupt 5 pillars forward
+                                      for (int i = 0; i < 5; i++) {
+                                          Location pt = slam.clone().add(dir.clone().setY(0).multiply(i * 2.5));
+                                          VectorMath.drawCylinder(pt, 1.5, 3.0, Particle.BLOCK, 12);
+                                          for (Entity e : w.getNearbyEntities(pt, 2.0, 4.0, 2.0)) if (e instanceof LivingEntity tg && tg != p) {
+                                              tg.damage(applyExecute(tg, 8.5 * dM, tier), p);
+                                              tg.setVelocity(new Vector(0, 1.2, 0)); // Launch
+                                          }
                                       }
                                       cancel();
                                   }
                               }
-                          }.runTaskTimer(pl, 4L, 1L);
+                          }.runTaskTimer(pl, 8L, 1L);
                       }
-                      case FROST -> {
-                          w.playSound(eye, Sound.BLOCK_GLASS_BREAK, 2.0f, 0.6f);
-                          VectorMath.drawHelixBeam(eye, dir, 15.0, a.getPrimaryColor(), Particle.SNOWFLAKE);
-                          for (int i = 1; i <= 15; i++) {
-                              Location pt = eye.clone().add(dir.clone().multiply(i));
-                              for (Entity e : w.getNearbyEntities(pt, 1.8, 1.8, 1.8)) if (e instanceof LivingEntity tg && tg != p) {
-                                  tg.damage(applyExecute(tg, 7.5 * dM, tier), p);
-                                  tg.setFreezeTicks(300);
-                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 80, 2));
-                              }
-                          }
-                      }
-                      case REAPER -> {
-                          w.playSound(eye, Sound.ENTITY_WITHER_SHOOT, 1.8f, 1.5f);
-                          VectorMath.drawHelixBeam(eye, dir, 14.0, a.getPrimaryColor(), Particle.SOUL_FIRE_FLAME);
-                          double st = 0;
-                          for (int i = 1; i <= 14; i++) {
-                              Location pt = eye.clone().add(dir.clone().multiply(i));
-                              for (Entity e : w.getNearbyEntities(pt, 1.8, 1.8, 1.8)) if (e instanceof LivingEntity tg && tg != p) {
-                                  tg.damage(applyExecute(tg, 8.0 * dM, tier), p);
-                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 80, 1));
-                                  st += 2.0;
-                              }
-                          }
-                          if (st > 0) {
-                              double maxHp = Objects.requireNonNull(p.getAttribute(Attribute.GENERIC_MAX_HEALTH)).getValue();
-                              p.setHealth(Math.min(maxHp, p.getHealth() + st));
-                          }
-                      }
-                      case RAGE -> {
-                          if (p.getHealth() > 2.0) p.setHealth(p.getHealth() - 2.0);
-                          w.playSound(eye, Sound.ENTITY_RAVAGER_ATTACK, 2.0f, 0.8f);
-                          VectorMath.drawHelixBeam(eye, dir, 12.0, a.getPrimaryColor(), Particle.FLAME);
-                          for (Entity e : p.getNearbyEntities(5, 2.5, 5)) if (e instanceof LivingEntity tg && tg != p) {
+                      case FROST -> { // Glacial Piercer
+                          w.playSound(eye, Sound.ENTITY_SNOW_GOLEM_SHOOT, 2.0f, 0.5f);
+                          VectorMath.drawHelixBeam(eye, dir, 25.0, a.getPrimaryColor(), Particle.SNOWFLAKE);
+                          RayTraceResult ray = w.rayTraceEntities(eye, dir, 25.0, e -> e != p && e instanceof LivingEntity);
+                          if (ray != null && ray.getHitEntity() instanceof LivingEntity tg) {
                               tg.damage(applyExecute(tg, 9.0 * dM, tier), p);
-                              tg.setFireTicks(80);
+                              tg.setFreezeTicks(300);
+                              tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 4));
+                              VectorMath.drawDustRing(tg.getLocation().add(0, 1, 0), 2.0, a.getPrimaryColor(), 30);
+                              w.playSound(tg.getLocation(), Sound.BLOCK_GLASS_BREAK, 2f, 1.5f);
                           }
                       }
-                      case AEGIS -> {
-                          RayTraceResult r = p.rayTraceBlocks(22);
-                          Location tgt = (r != null && r.getHitPosition() != null) ? r.getHitPosition().toLocation(w) : eye.clone().add(dir.clone().multiply(14));
-                          w.playSound(tgt, Sound.ITEM_TRIDENT_THUNDER, 2.0f, 1.3f);
-                          VectorMath.drawDustRing(tgt, 2.5, a.getPrimaryColor(), 32);
-                          w.spawnParticle(Particle.END_ROD, tgt.clone().add(0, 1, 0), 20, 0.3, 2.0, 0.3, 0.05);
-                          for (Entity e : tgt.getWorld().getNearbyEntities(tgt, 4.5, 4.0, 4.5)) if (e instanceof LivingEntity tg && tg != p) {
-                              tg.damage(applyExecute(tg, 9.5 * dM, tier), p);
-                              tg.setFireTicks(80);
-                          }
-                      }
-                      case BLOOM -> {
-                          w.playSound(eye, Sound.BLOCK_VINE_BREAK, 2.0f, 0.7f);
-                          VectorMath.drawHelixBeam(eye, dir, 14.0, a.getPrimaryColor(), Particle.HAPPY_VILLAGER);
-                          for (int i = 1; i <= 14; i++) {
-                              Location pt = eye.clone().add(dir.clone().multiply(i));
-                              for (Entity e : w.getNearbyEntities(pt, 1.8, 1.8, 1.8)) if (e instanceof LivingEntity tg && tg != p) {
-                                  tg.damage(applyExecute(tg, 7.5 * dM, tier), p);
-                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 80, 1));
-                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 2));
-                                  return true;
+                      case REAPER -> { // Scythe of Anguish
+                          w.playSound(eye, Sound.ENTITY_WITHER_SHOOT, 1.8f, 1.5f);
+                          // Wide Horizontal Crescent Sweep
+                          for (double angle = -Math.PI / 3; angle <= Math.PI / 3; angle += Math.PI / 16) {
+                              Vector sweep = dir.clone().rotateAroundY(angle).multiply(4.0);
+                              Location pt = eye.clone().add(sweep);
+                              w.spawnParticle(Particle.SOUL_FIRE_FLAME, pt, 5, 0.1, 0.1, 0.1, 0.05);
+                              for (Entity e : w.getNearbyEntities(pt, 1.5, 1.5, 1.5)) if (e instanceof LivingEntity tg && tg != p) {
+                                  double dmg = applyExecute(tg, 8.0 * dM, tier);
+                                  tg.damage(dmg, p);
+                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 100, 1));
+                                  double maxHp = p.getAttribute(Attribute.GENERIC_MAX_HEALTH) != null ? p.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue() : 20.0;
+                                  p.setHealth(Math.min(maxHp, p.getHealth() + (dmg * 0.4))); // Lifesteal
                               }
                           }
                       }
-                      case STORM -> {
-                          RayTraceResult tr = p.rayTraceBlocks(25);
-                          Location tgt = (tr != null && tr.getHitPosition() != null) ? tr.getHitPosition().toLocation(w) : eye.clone().add(dir.clone().multiply(16));
-                          w.playSound(tgt, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 2.0f, 1.5f);
-                          w.strikeLightningEffect(tgt);
-                          VectorMath.drawDustRing(tgt, 3.2, a.getPrimaryColor(), 36);
-                          for (Entity e : tgt.getWorld().getNearbyEntities(tgt, 4.5, 4.0, 4.5)) if (e instanceof LivingEntity tg && tg != p) {
-                              tg.damage(applyExecute(tg, 9.5 * dM, tier), p);
+                      case RAGE -> { // Bloodthirst Strike (True Damage)
+                          if (p.getHealth() > 4.0) p.setHealth(p.getHealth() - 4.0);
+                          else { p.sendMessage(Component.text("Not enough blood!", NamedTextColor.RED)); return false; }
+
+                          w.playSound(eye, Sound.ENTITY_RAVAGER_ATTACK, 2.0f, 0.8f);
+                          VectorMath.drawHelixBeam(eye, dir, 8.0, a.getPrimaryColor(), Particle.FLAME);
+                          RayTraceResult ray = w.rayTraceEntities(eye, dir, 8.0, e -> e != p && e instanceof LivingEntity);
+                          if (ray != null && ray.getHitEntity() instanceof LivingEntity tg) {
+                              // TRUE DAMAGE Bypass
+                              double trueDmg = 12.0 * dM;
+                              tg.setHealth(Math.max(0, tg.getHealth() - trueDmg));
+                              tg.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR, tg.getLocation().add(0, 1, 0), 10, 0.5, 0.5, 0.5, 0.1);
                           }
                       }
-                      case VOID -> {
-                          RayTraceResult tr = p.rayTraceBlocks(18);
-                          Location c = (tr != null && tr.getHitPosition() != null) ? tr.getHitPosition().toLocation(w) : eye.clone().add(dir.clone().multiply(10));
-                          w.playSound(c, Sound.BLOCK_BEACON_DEACTIVATE, 2.0f, 0.6f);
-                          VectorMath.drawDustRing(c, 3.0, a.getPrimaryColor(), 36);
-                          w.spawnParticle(Particle.PORTAL, c, 35, 0.8, 0.8, 0.8, 0.15);
-                          for (Entity e : c.getWorld().getNearbyEntities(c, 5.5, 4.0, 5.5)) if (e instanceof LivingEntity tg && tg != p) {
-                              tg.setVelocity(c.toVector().subtract(tg.getLocation().toVector()).normalize().multiply(0.6));
-                              tg.damage(applyExecute(tg, 8.5 * dM, tier), p);
+                      case AEGIS -> { // Spear of Light
+                          w.playSound(eye, Sound.ITEM_TRIDENT_THUNDER, 2.0f, 1.5f);
+                          VectorMath.drawHelixBeam(eye, dir, 30.0, a.getPrimaryColor(), Particle.END_ROD);
+                          RayTraceResult ray = w.rayTraceEntities(eye, dir, 30.0, e -> e != p && e instanceof LivingEntity);
+                          if (ray != null && ray.getHitEntity() instanceof LivingEntity tg) {
+                              tg.damage(applyExecute(tg, 10.0 * dM, tier), p);
+                              tg.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 60, 1));
+                              tg.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 100, 1));
+                              w.spawnParticle(Particle.FLASH, tg.getLocation().add(0, 1, 0), 2);
                           }
                       }
-                      case PHANTOM -> {
-                          RayTraceResult ry = p.rayTraceEntities(15);
+                      case BLOOM -> { // Venomous Spores
+                          w.playSound(eye, Sound.ENTITY_SNOW_GOLEM_SHOOT, 2.0f, 0.7f);
+                          Item projectile = w.dropItem(eye, gm.createGem(AspectType.BLOOM, 0));
+                          projectile.setVelocity(dir.multiply(1.5));
+                          new BukkitRunnable() {
+                              public void run() {
+                                  if (projectile.isOnGround() || projectile.getTicksLived() > 40) {
+                                      Location hit = projectile.getLocation();
+                                      projectile.remove();
+                                      w.playSound(hit, Sound.BLOCK_VINE_BREAK, 2.0f, 0.5f);
+                                      VectorMath.drawSphere(hit, 3.0, Particle.SPORE_BLOSSOM_AIR);
+                                      for (Entity e : w.getNearbyEntities(hit, 3.0, 3.0, 3.0)) if (e instanceof LivingEntity tg && tg != p) {
+                                          tg.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 120, 2));
+                                          tg.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, 120, 1));
+                                          tg.damage(applyExecute(tg, 6.0 * dM, tier), p);
+                                      }
+                                      cancel();
+                                  }
+                              }
+                          }.runTaskTimer(pl, 0L, 1L);
+                      }
+                      case STORM -> { // Thunderclap Hitscan Stun
+                          RayTraceResult ray = w.rayTraceEntities(eye, dir, 25.0, e -> e != p && e instanceof LivingEntity);
+                          if (ray != null && ray.getHitEntity() instanceof LivingEntity tg) {
+                              w.strikeLightningEffect(tg.getLocation());
+                              tg.damage(applyExecute(tg, 9.0 * dM, tier), p);
+                              tg.setVelocity(new Vector(0, 0, 0)); // Halts velocity (Stun)
+                              tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20, 10)); // Hard stun
+                          } else {
+                              VectorMath.drawHelixBeam(eye, dir, 25.0, a.getPrimaryColor(), Particle.ELECTRIC_SPARK);
+                          }
+                      }
+                      case VOID -> { // Gravity Well Projectile
+                          w.playSound(eye, Sound.ENTITY_ENDER_PEARL_THROW, 2.0f, 0.5f);
+                          Item orb = w.dropItem(eye, new ItemStack(Material.ENDER_PEARL));
+                          orb.setVelocity(dir.multiply(1.0));
+                          new BukkitRunnable() {
+                              public void run() {
+                                  if (orb.isOnGround() || orb.getTicksLived() > 60) {
+                                      Location hit = orb.getLocation();
+                                      orb.remove();
+                                      w.playSound(hit, Sound.BLOCK_BEACON_DEACTIVATE, 2.0f, 0.5f);
+                                      pl.spawnTask(60, 2, step -> {
+                                          VectorMath.drawDustRing(hit, 4.0, a.getPrimaryColor(), 30);
+                                          for (Entity e : w.getNearbyEntities(hit, 6.0, 6.0, 6.0)) if (e instanceof LivingEntity tg && tg != p) {
+                                              tg.setVelocity(hit.toVector().subtract(tg.getLocation().toVector()).normalize().multiply(0.4));
+                                              tg.damage(applyExecute(tg, 1.5 * dM, tier), p);
+                                          }
+                                      });
+                                      cancel();
+                                  }
+                              }
+                          }.runTaskTimer(pl, 0L, 1L);
+                      }
+                      case PHANTOM -> { // Assassinate Backstab
+                          RayTraceResult ry = p.rayTraceEntities(20.0);
                           if (ry != null && ry.getHitEntity() instanceof LivingEntity tg && tg != p) {
                               Location bh = tg.getLocation().subtract(tg.getLocation().getDirection().normalize().multiply(1.5));
                               bh.setDirection(tg.getLocation().subtract(bh).toVector());
                               p.teleport(bh);
-                              w.playSound(bh, Sound.ENTITY_PLAYER_ATTACK_CRIT, 1.8f, 0.7f);
-                              tg.damage(applyExecute(tg, 9.5 * dM, tier), p);
-                              tg.addPotionEffect(new PotionEffect(PotionEffectType.DARKNESS, 80, 1));
-                              VectorMath.drawDustRing(bh, 2.2, a.getPrimaryColor(), 28);
+                              w.playSound(bh, Sound.ENTITY_ENDERMAN_TELEPORT, 2f, 0.7f);
+                              // Calculate Backstab
+                              Vector pDir = p.getLocation().getDirection().setY(0).normalize();
+                              Vector tDir = tg.getLocation().getDirection().setY(0).normalize();
+                              double mult = (pDir.dot(tDir) > 0.6) ? 2.5 : 1.0;
+                              tg.damage(applyExecute(tg, 8.0 * dM * mult, tier), p);
+                              tg.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 60, 1));
+                              w.spawnParticle(Particle.SQUID_INK, bh, 50, 0.5, 1, 0.5, 0.1);
                           } else {
-                              p.sendActionBar(Component.text("Aim at a target to Shadow Step!", NamedTextColor.GRAY));
+                              p.sendActionBar(Component.text("Aim at a target to Assassinate!", NamedTextColor.GRAY));
                               return false;
                           }
                       }
-                      case KNIGHT -> {
+                      case KNIGHT -> { // Shield Bash Fracture
                           p.setVelocity(dir.clone().setY(0.2).multiply(2.2));
-                          w.playSound(eye, Sound.ITEM_ARMOR_EQUIP_NETHERITE, 2.0f, 0.7f);
-                          pl.spawnTask(40, 2, step -> {
-                              VectorMath.drawDenseRing(p.getLocation().add(0, 0.8, 0), 1.2, Particle.CRIT, 16, 1);
+                          w.playSound(eye, Sound.ITEM_SHIELD_BREAK, 2.0f, 0.8f);
+                          pl.spawnTask(30, 1, step -> {
+                              VectorMath.drawDustRing(p.getLocation().add(0, 1, 0), 1.5, a.getPrimaryColor(), 15);
                               for (Entity e : p.getNearbyEntities(2.0, 2.0, 2.0)) if (e instanceof LivingEntity tg && tg != p) {
-                                  tg.damage(applyExecute(tg, 8.5 * dM, tier), p);
+                                  tg.damage(applyExecute(tg, 9.0 * dM, tier), p);
                                   tg.setVelocity(p.getLocation().getDirection().multiply(1.5).setY(0.4));
-                                  w.playSound(tg.getLocation(), Sound.ITEM_SHIELD_BLOCK, 2.0f, 0.6f);
+                                  // Fracture Armor (Weakness + Glowing)
+                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 100, 1));
+                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 100, 1));
+                                  w.playSound(tg.getLocation(), Sound.ITEM_SHIELD_BREAK, 2.0f, 0.5f);
+                                  cancel();
                               }
                           });
                       }
@@ -708,7 +749,7 @@ jobs:
                   return true;
               }
 
-              // MOVE 2: DEFENSIVE ORBITALS & SUSTAINED STANCES
+              // ======================= MOVE 2 (SHIFT + RIGHT-CLICK) =======================
               private boolean castMove2(Player p, AspectType a, int tier, double cM) {
                   String k = "m2";
                   double baseCd = cd.getConfigCooldown(a, 2);
@@ -716,24 +757,128 @@ jobs:
                   cd.setCooldown(p, k, baseCd * cM);
 
                   World w = p.getWorld(); Location eye = p.getEyeLocation();
-                  int duration = 60 + (tier * 10);
+                  Vector dir = eye.getDirection().normalize();
 
-                  w.playSound(eye, Sound.BLOCK_BEACON_ACTIVATE, 2.0f, 1.5f);
-                  p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, duration, 2));
-
-                  pl.spawnTask(duration, 2, step -> {
-                      double time = (step * 0.25);
-                      VectorMath.drawOrbitals(p.getLocation(), 2.2, time, a.getPrimaryColor(), Particle.END_ROD);
-                      VectorMath.drawDustRing(p.getLocation().add(0, 0.1, 0), 1.8, a.getSecondaryColor(), 28);
-
-                      for (Entity e : p.getNearbyEntities(2.8, 2.2, 2.8)) if (e instanceof Projectile proj) {
-                          proj.setVelocity(proj.getVelocity().multiply(-0.8));
+                  switch (a) {
+                      case TERRA -> { // Petrifying Gaze Block Trap
+                          VectorMath.drawHelixBeam(eye, dir, 15.0, a.getPrimaryColor(), Particle.BLOCK_MARKER);
+                          RayTraceResult r = w.rayTraceEntities(eye, dir, 15.0, e -> e != p && e instanceof LivingEntity);
+                          if (r != null && r.getHitEntity() instanceof LivingEntity tg) {
+                              w.playSound(tg.getLocation(), Sound.BLOCK_STONE_PLACE, 2.0f, 0.5f);
+                              pl.spawnTask(60, 2, step -> { // 3 seconds trapped
+                                  tg.setVelocity(new Vector(0,0,0));
+                                  VectorMath.drawCube(tg.getLocation(), 1.2, Particle.BLOCK, Material.STONE.createBlockData());
+                              });
+                          }
                       }
-                  });
+                      case FROST -> { // Flash Freeze AoE
+                          w.playSound(p.getLocation(), Sound.BLOCK_SNOW_BREAK, 2.0f, 0.5f);
+                          VectorMath.drawPlanarRing(p.getLocation(), 6.0, 60, a.getPrimaryColor());
+                          for (Entity e : p.getNearbyEntities(6.0, 3.0, 6.0)) if (e instanceof LivingEntity tg && tg != p) {
+                              tg.setFreezeTicks(300);
+                              tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 4));
+                              VectorMath.drawCylinder(tg.getLocation(), 1.5, 2.0, Particle.SNOWFLAKE, 20);
+                          }
+                      }
+                      case REAPER -> { // Wraith's Deceit Clone
+                          Location cloneLoc = p.getLocation().clone();
+                          p.teleport(p.getLocation().add(dir.clone().multiply(-8).setY(0.2))); // Blink backwards
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 100, 0));
+                          w.playSound(cloneLoc, Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 2.0f, 1.0f);
+                          pl.spawnTask(40, 2, step -> {
+                              VectorMath.drawCylinder(cloneLoc, 0.5, 1.8, Particle.SOUL, 10);
+                          });
+                          Bukkit.getScheduler().runTaskLater(pl, () -> {
+                              w.playSound(cloneLoc, Sound.ENTITY_GENERIC_EXPLODE, 2.0f, 0.8f);
+                              VectorMath.drawSphere(cloneLoc, 4.0, Particle.SOUL_FIRE_FLAME);
+                              for (Entity e : w.getNearbyEntities(cloneLoc, 4.0, 4.0, 4.0)) if (e instanceof LivingEntity tg && tg != p) tg.damage(10.0, p);
+                          }, 40L);
+                      }
+                      case RAGE -> { // Infernal Charge Grab
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 100, 0));
+                          p.setVelocity(dir.clone().setY(0.2).multiply(2.5));
+                          w.playSound(eye, Sound.ENTITY_BLAZE_SHOOT, 2.0f, 0.5f);
+                          pl.spawnTask(20, 1, step -> {
+                              w.spawnParticle(Particle.FLAME, p.getLocation().add(0, 1, 0), 20, 0.5, 0.5, 0.5, 0.05);
+                              for (Entity e : p.getNearbyEntities(1.5, 1.5, 1.5)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.teleport(p.getLocation().add(dir)); // Carry them
+                                  if (step >= 18) { // Slam at the end
+                                      tg.damage(12.0, p);
+                                      tg.setVelocity(new Vector(0, -1.5, 0));
+                                      w.playSound(tg.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 2.0f, 0.6f);
+                                      w.spawnParticle(Particle.EXPLOSION, tg.getLocation(), 2);
+                                  }
+                              }
+                          });
+                      }
+                      case AEGIS -> { // Heavenly Reprieve Invuln Shield
+                          w.playSound(p.getLocation(), Sound.ITEM_TOTEM_USE, 1.5f, 1.5f);
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 100, 4)); // Pseudo-Invuln 20 temp HP
+                          VectorMath.drawOrbitals(p.getLocation(), 1.5, 0.0, a.getPrimaryColor(), Particle.END_ROD);
+                          for (Entity e : p.getNearbyEntities(5, 5, 5)) if (e instanceof Player ally) {
+                              ally.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 100, 4));
+                              VectorMath.drawOrbitals(ally.getLocation(), 1.5, 0.0, a.getPrimaryColor(), Particle.END_ROD);
+                          }
+                      }
+                      case BLOOM -> { // Root Grasp Snare
+                          VectorMath.drawPlanarRing(p.getLocation(), 15.0, 60, a.getPrimaryColor());
+                          w.playSound(p.getLocation(), Sound.BLOCK_VINE_STEP, 2.0f, 0.5f);
+                          for (Entity e : p.getNearbyEntities(15.0, 5.0, 15.0)) if (e instanceof LivingEntity tg && tg != p) {
+                              Location anchor = tg.getLocation().clone();
+                              rootSnare.put(tg.getUniqueId(), anchor);
+                              tg.sendMessage(Component.text("You are rooted in place!", NamedTextColor.GREEN));
+                              Bukkit.getScheduler().runTaskLater(pl, () -> rootSnare.remove(tg.getUniqueId()), 80L);
+                          }
+                      }
+                      case STORM -> { // Riding the Lightning Teleport
+                          RayTraceResult r = p.rayTraceBlocks(20);
+                          Location tgt = (r != null && r.getHitPosition() != null) ? r.getHitPosition().toLocation(w) : eye.clone().add(dir.clone().multiply(15));
+                          w.strikeLightningEffect(p.getLocation());
+                          p.teleport(tgt);
+                          w.strikeLightningEffect(tgt);
+                          for (Entity e : p.getNearbyEntities(4.0, 4.0, 4.0)) if (e instanceof LivingEntity tg && tg != p) tg.damage(8.0, p);
+                      }
+                      case VOID -> { // Spatial Swap
+                          RayTraceResult r = p.rayTraceEntities(25.0);
+                          if (r != null && r.getHitEntity() instanceof LivingEntity tg && tg != p) {
+                              Location temp = p.getLocation().clone();
+                              p.teleport(tg.getLocation());
+                              tg.teleport(temp);
+                              w.playSound(p.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 2.0f, 0.5f);
+                              w.playSound(tg.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 2.0f, 0.5f);
+                              VectorMath.drawSphere(p.getLocation(), 2.0, Particle.PORTAL);
+                              VectorMath.drawSphere(tg.getLocation(), 2.0, Particle.PORTAL);
+                          } else {
+                              p.sendActionBar(Component.text("Aim at a target to swap!", NamedTextColor.GRAY));
+                              return false;
+                          }
+                      }
+                      case PHANTOM -> { // Phase Shift Wall Dash
+                          w.playSound(eye, Sound.ENTITY_VEX_CHARGE, 2.0f, 0.8f);
+                          Location target = eye.clone().add(dir.clone().multiply(8));
+                          // Simple wall phase check
+                          if (!target.getBlock().isSolid()) {
+                              p.teleport(target);
+                              w.spawnParticle(Particle.SQUID_INK, p.getLocation(), 40, 0.5, 0.5, 0.5, 0.1);
+                          } else {
+                              p.sendActionBar(Component.text("Too thick to phase through!", NamedTextColor.GRAY));
+                              return false;
+                          }
+                      }
+                      case KNIGHT -> { // Iron Maiden Counter
+                          w.playSound(p.getLocation(), Sound.BLOCK_ANVIL_USE, 2.0f, 1.2f);
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 5));
+                          ironMaiden.add(p.getUniqueId());
+                          pl.spawnTask(60, 2, step -> {
+                              VectorMath.drawSphere(p.getLocation(), 2.0, Particle.CRIT);
+                          });
+                          Bukkit.getScheduler().runTaskLater(pl, () -> ironMaiden.remove(p.getUniqueId()), 60L);
+                      }
+                  }
                   return true;
               }
 
-              // MOVE 3: FLOOR RUNE CROWD CONTROL
+              // ======================= MOVE 3 (LEFT-CLICK) =======================
               private boolean castMove3(Player p, AspectType a, int tier, double dM, double cM) {
                   String k = "m3";
                   double baseCd = cd.getConfigCooldown(a, 3);
@@ -743,19 +888,125 @@ jobs:
                   World w = p.getWorld(); Location loc = p.getLocation();
                   w.playSound(loc, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 2.0f, 1.2f);
 
-                  int dur = 70 + (tier * 10);
-                  pl.spawnTask(dur, 2, step -> {
-                      double rot = (step * 0.08);
-                      VectorMath.drawMagicSeal(loc, 4.5, rot, a.getPrimaryColor(), a.getSecondaryColor(), Particle.FLASH);
-                      for (Entity e : loc.getWorld().getNearbyEntities(loc, 5.5, 3.0, 5.5)) if (e instanceof LivingEntity tg && tg != p) {
-                          tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 3));
-                          tg.damage(applyExecute(tg, 1.6 * dM, tier), p);
+                  switch (a) {
+                      case TERRA -> { // Seismic Pull
+                          RayTraceResult r = p.rayTraceBlocks(20);
+                          Location tgt = (r != null && r.getHitPosition() != null) ? r.getHitPosition().toLocation(w) : p.getEyeLocation().add(p.getLocation().getDirection().multiply(15));
+                          VectorMath.drawPlanarRing(tgt, 8.0, 36, a.getPrimaryColor());
+                          w.playSound(tgt, Sound.ENTITY_IRON_GOLEM_REPAIR, 2.0f, 0.5f);
+                          for (Entity e : tgt.getWorld().getNearbyEntities(tgt, 8.0, 8.0, 8.0)) if (e instanceof LivingEntity tg && tg != p) {
+                              tg.setVelocity(tgt.toVector().subtract(tg.getLocation().toVector()).normalize().multiply(1.5));
+                          }
                       }
-                  });
+                      case FROST -> { // Ice Skates
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 2));
+                          pl.spawnTask(100, 2, step -> {
+                              w.spawnParticle(Particle.SNOWFLAKE, p.getLocation().subtract(0, 0.1, 0), 10, 0.5, 0.1, 0.5, 0.05);
+                              for (Entity e : p.getNearbyEntities(2, 2, 2)) if (e instanceof LivingEntity tg && tg != p) tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 2));
+                          });
+                      }
+                      case REAPER -> { // Soul Shackles
+                          RayTraceResult r = p.rayTraceEntities(15.0);
+                          if (r != null && r.getHitEntity() instanceof LivingEntity tg && tg != p) {
+                              w.playSound(p.getLocation(), Sound.ENTITY_LEASH_KNOT_PLACE, 2.0f, 1.0f);
+                              tethered.put(tg.getUniqueId(), p.getUniqueId());
+                              pl.spawnTask(100, 5, step -> {
+                                  if (!tethered.containsKey(tg.getUniqueId())) return;
+                                  VectorMath.drawHelixBeam(p.getLocation(), tg.getLocation().toVector().subtract(p.getLocation().toVector()).normalize(), p.getLocation().distance(tg.getLocation()), a.getPrimaryColor(), null);
+                                  if (tg.getLocation().distanceSquared(p.getLocation()) > 100.0) { // 10 blocks squared = 100
+                                      tg.teleport(p.getLocation());
+                                      tg.damage(10.0, p);
+                                      w.playSound(p.getLocation(), Sound.ENTITY_IRON_GOLEM_DAMAGE, 2.0f, 0.5f);
+                                      tethered.remove(tg.getUniqueId());
+                                  }
+                              });
+                              Bukkit.getScheduler().runTaskLater(pl, () -> tethered.remove(tg.getUniqueId()), 100L);
+                          } else { p.sendActionBar(Component.text("Aim at a target to Tether!", NamedTextColor.GRAY)); return false; }
+                      }
+                      case RAGE -> { // Ignition Roar
+                          w.playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 2.0f, 1.2f);
+                          VectorMath.drawSphere(p.getLocation(), 6.0, Particle.FLAME);
+                          for (Entity e : p.getNearbyEntities(6, 6, 6)) if (e instanceof LivingEntity tg && tg != p) {
+                              tg.removePotionEffect(PotionEffectType.SPEED);
+                              tg.removePotionEffect(PotionEffectType.STRENGTH);
+                              tg.removePotionEffect(PotionEffectType.RESISTANCE);
+                              tg.setFireTicks(140);
+                              tg.damage(6.0, p);
+                          }
+                      }
+                      case AEGIS -> { // Blinding Retribution
+                          w.playSound(p.getLocation(), Sound.ENTITY_ELDER_GUARDIAN_CURSE, 2.0f, 1.5f);
+                          w.spawnParticle(Particle.FLASH, p.getLocation().add(0, 1, 0), 5);
+                          for (Entity e : p.getNearbyEntities(10, 10, 10)) if (e instanceof LivingEntity tg && tg != p) {
+                              // If they are looking at you
+                              Vector dirToMe = p.getLocation().toVector().subtract(tg.getLocation().toVector()).normalize();
+                              if (tg.getLocation().getDirection().normalize().dot(dirToMe) > 0.5) {
+                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 100, 1));
+                                  tg.setVelocity(tg.getLocation().getDirection().multiply(-1.5).setY(0.4));
+                              }
+                          }
+                      }
+                      case BLOOM -> { // Petal Dance
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 1));
+                          w.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 2.0f, 1.8f);
+                          pl.spawnTask(100, 2, step -> {
+                              VectorMath.drawOrbitals(p.getLocation(), 2.0, step * 0.3, a.getPrimaryColor(), Particle.HAPPY_VILLAGER);
+                              for (Entity e : p.getNearbyEntities(2.5, 2.5, 2.5)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.damage(2.0, p); // Passive tick damage
+                              }
+                          });
+                      }
+                      case STORM -> { // Static Cage
+                          RayTraceResult r = p.rayTraceEntities(15.0);
+                          if (r != null && r.getHitEntity() instanceof LivingEntity tg && tg != p) {
+                              Location center = tg.getLocation().clone();
+                              w.playSound(center, Sound.BLOCK_BEACON_ACTIVATE, 2.0f, 2.0f);
+                              pl.spawnTask(80, 5, step -> {
+                                  VectorMath.drawPlanarRing(center, 4.0, 36, a.getPrimaryColor());
+                                  if (tg.getLocation().distanceSquared(center) > 16.0) { // Stepped outside 4 blocks
+                                      w.strikeLightningEffect(tg.getLocation());
+                                      tg.teleport(center);
+                                      tg.damage(8.0, p);
+                                  }
+                              });
+                          } else { p.sendActionBar(Component.text("Aim at a target to Cage!", NamedTextColor.GRAY)); return false; }
+                      }
+                      case VOID -> { // Nullify Silence
+                          VectorMath.drawSphere(p.getLocation(), 10.0, Particle.PORTAL);
+                          w.playSound(p.getLocation(), Sound.ENTITY_WARDEN_SONIC_BOOM, 2.0f, 1.5f);
+                          for (Entity e : p.getNearbyEntities(10, 10, 10)) if (e instanceof Player tg && tg != p) {
+                              // Force 5 second cooldown on all moves for the victim
+                              cd.setCooldown(tg, "m1", 5.0); cd.setCooldown(tg, "m2", 5.0);
+                              cd.setCooldown(tg, "m3", 5.0); cd.setCooldown(tg, "m4", 5.0);
+                              tg.sendMessage(Component.text("You have been Silenced!", NamedTextColor.DARK_PURPLE));
+                          }
+                      }
+                      case PHANTOM -> { // Phase Shift
+                          p.setVelocity(p.getLocation().getDirection().setY(0).normalize().multiply(2.5));
+                          w.playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_FLAP, 2.0f, 1.5f);
+                          w.spawnParticle(Particle.SQUID_INK, p.getLocation(), 50, 0.5, 0.5, 0.5, 0.1);
+                      }
+                      case KNIGHT -> { // Disarm Hook
+                          RayTraceResult r = p.rayTraceEntities(12.0);
+                          if (r != null && r.getHitEntity() instanceof Player tg && tg != p) {
+                              w.playSound(p.getLocation(), Sound.ITEM_TRIDENT_THROW, 2.0f, 0.5f);
+                              VectorMath.drawHelixBeam(p.getEyeLocation(), p.getEyeLocation().getDirection(), p.getLocation().distance(tg.getLocation()), Color.GRAY, null);
+                              // Swap main hand to a random slot
+                              PlayerInventory inv = tg.getInventory();
+                              int randomSlot = (int)(Math.random() * 9);
+                              ItemStack inHand = inv.getItemInMainHand();
+                              ItemStack inSlot = inv.getItem(randomSlot);
+                              inv.setItemInMainHand(inSlot);
+                              inv.setItem(randomSlot, inHand);
+                              tg.sendMessage(Component.text("You were disarmed!", NamedTextColor.RED));
+                              w.playSound(tg.getLocation(), Sound.ENTITY_ITEM_BREAK, 2.0f, 1.0f);
+                          } else { p.sendActionBar(Component.text("Aim at a player to Disarm!", NamedTextColor.GRAY)); return false; }
+                      }
+                  }
                   return true;
               }
 
-              // MOVE 4: CATACLYSMIC 3-STAGE RITUALS (Drop Key 'Q')
+              // ======================= MOVE 4 (DROP KEY 'Q' ULTIMATES) =======================
               private void castMove4(Player p, AspectType a, int tier, double dM, double cM) {
                   String k = "m4";
                   double baseCd = cd.getConfigCooldown(a, 4);
@@ -766,41 +1017,135 @@ jobs:
                   int dur = 100 + (tier * 15);
 
                   p.sendMessage(Component.text("✦ CATACLYSM UNLEASHED: " + a.getM4() + " ✦", NamedTextColor.GOLD).decorate(TextDecoration.BOLD));
-                  w.playSound(c, Sound.ENTITY_WARDEN_SONIC_BOOM, 2.5f, 0.8f);
-                  w.playSound(c, Sound.UI_TOAST_CHALLENGE_COMPLETE, 2.0f, 0.6f);
+                  w.playSound(c, Sound.ENTITY_WITHER_SPAWN, 2.0f, 0.5f);
 
-                  pl.spawnTask(dur, 2, step -> {
-                      double rot = (step * 0.12);
-                      VectorMath.drawMagicSeal(c, 7.5, rot, a.getPrimaryColor(), a.getSecondaryColor(), Particle.FLASH);
-                      VectorMath.drawSkyPillar(c, 24.0, a.getSecondaryColor(), Particle.END_ROD);
-                      double r = 1.5 + ((step % 20) * 0.35);
-                      VectorMath.drawDustRing(c, r, a.getPrimaryColor(), 48);
-
-                      for (Entity e : c.getWorld().getNearbyEntities(c, 8.5, 5.0, 8.5)) if (e instanceof LivingEntity tg && tg != p) {
-                          tg.damage(applyExecute(tg, 3.5 * dM, tier), p);
-                          tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 2));
-                          tg.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 60, 1));
+                  switch (a) {
+                      case TERRA -> { // Tectonic Execution
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 2));
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 100, 1));
+                          VectorMath.drawCylinder(c, 10.0, 5.0, Particle.BLOCK, 60);
+                          for (Entity e : c.getWorld().getNearbyEntities(c, 10, 5, 10)) if (e instanceof LivingEntity tg && tg != p) {
+                              tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 100, 4));
+                              tg.damage(15.0 * dM, p);
+                          }
                       }
-                  });
+                      case FROST -> { // Absolute Zero Domain
+                          pl.spawnTask(dur, 5, step -> {
+                              VectorMath.drawSphere(c, 12.0, Particle.SNOWFLAKE);
+                              for (Entity e : c.getWorld().getNearbyEntities(c, 12, 12, 12)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 1));
+                                  tg.damage(3.0 * dM, p);
+                                  tg.setFreezeTicks(400);
+                              }
+                          });
+                      }
+                      case REAPER -> { // Domain of the Damned
+                          pl.spawnTask(dur, 5, step -> {
+                              VectorMath.drawSphere(c, 12.0, Particle.SOUL);
+                              double stolen = 0;
+                              for (Entity e : c.getWorld().getNearbyEntities(c, 12, 12, 12)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.DARKNESS, 60, 1));
+                                  tg.damage(3.0 * dM, p);
+                                  stolen += 3.0;
+                              }
+                              if (stolen > 0) p.setHealth(Math.min(p.getMaxHealth(), p.getHealth() + stolen));
+                          });
+                      }
+                      case RAGE -> { // Supernova
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 80, 3));
+                          w.playSound(c, Sound.ENTITY_CREEPER_PRIMED, 2.0f, 0.5f);
+                          Bukkit.getScheduler().runTaskLater(pl, () -> {
+                              Location boom = p.getLocation();
+                              w.playSound(boom, Sound.ENTITY_GENERIC_EXPLODE, 3.0f, 0.5f);
+                              VectorMath.drawSphere(boom, 8.0, Particle.LAVA);
+                              w.spawnParticle(Particle.EXPLOSION, boom, 5);
+                              double dmg = (p.getMaxHealth() - p.getHealth()) * 1.5 * dM;
+                              for (Entity e : boom.getWorld().getNearbyEntities(boom, 8, 8, 8)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.setHealth(Math.max(0, tg.getHealth() - dmg)); // TRUE DAMAGE
+                                  tg.setFireTicks(200);
+                              }
+                          }, 80L); // 4 seconds later
+                      }
+                      case AEGIS -> { // Grand Sanctuary
+                          pl.spawnTask(dur, 5, step -> {
+                              VectorMath.drawSphere(c, 10.0, Particle.END_ROD);
+                              for (Entity e : c.getWorld().getNearbyEntities(c, 10, 10, 10)) {
+                                  if (e.equals(p)) p.setHealth(Math.min(p.getMaxHealth(), p.getHealth() + 2.0));
+                                  else if (e instanceof LivingEntity tg) tg.setVelocity(tg.getLocation().toVector().subtract(c.toVector()).normalize().multiply(1.5));
+                              }
+                          });
+                      }
+                      case BLOOM -> { // Wrath of Nature
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, dur, 2));
+                          pl.spawnTask(dur, 10, step -> {
+                              VectorMath.drawCylinder(c, 15.0, 3.0, Particle.HAPPY_VILLAGER, 60);
+                              for (Entity e : c.getWorld().getNearbyEntities(c, 15, 5, 15)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 60, 2));
+                                  tg.teleport(c); // Root pull to center
+                              }
+                          });
+                      }
+                      case STORM -> { // Eye of the Storm
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.LEVITATION, dur, 0));
+                          pl.spawnTask(dur, 15, step -> {
+                              for (Entity e : p.getNearbyEntities(15, 15, 15)) if (e instanceof LivingEntity tg && tg != p) {
+                                  w.strikeLightningEffect(tg.getLocation());
+                                  tg.damage(6.0 * dM, p);
+                              }
+                          });
+                      }
+                      case VOID -> { // Event Horizon Black Hole
+                          pl.spawnTask(60, 5, step -> {
+                              Location hole = c.clone().add(0, 5, 0);
+                              VectorMath.drawSphere(hole, 4.0, Particle.PORTAL);
+                              for (Entity e : c.getWorld().getNearbyEntities(c, 15, 15, 15)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.setVelocity(hole.toVector().subtract(tg.getLocation().toVector()).normalize().multiply(0.8));
+                              }
+                          });
+                          Bukkit.getScheduler().runTaskLater(pl, () -> {
+                              w.playSound(c, Sound.ENTITY_GENERIC_EXPLODE, 3.0f, 0.5f);
+                              for (Entity e : c.getWorld().getNearbyEntities(c, 15, 15, 15)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.setVelocity(new Vector(0, -2.5, 0)); // Slam down
+                                  tg.damage(15.0 * dM, p);
+                              }
+                          }, 60L);
+                      }
+                      case PHANTOM -> { // Nightmare Realm
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, dur, 2));
+                          pl.spawnTask(dur, 10, step -> {
+                              VectorMath.drawSphere(c, 20.0, Particle.SQUID_INK);
+                              for (Entity e : c.getWorld().getNearbyEntities(c, 20, 20, 20)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 60, 1));
+                                  tg.damage(2.0 * dM, p);
+                              }
+                          });
+                      }
+                      case KNIGHT -> { // Juggernaut's Arena
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, dur, 4));
+                          pl.spawnTask(dur, 5, step -> {
+                              VectorMath.drawCylinder(c, 8.0, 5.0, Particle.CRIT, 40);
+                              for (Entity e : c.getWorld().getNearbyEntities(c, 8, 5, 8)) if (e instanceof LivingEntity tg && tg != p) {
+                                  if (tg.getLocation().distanceSquared(c) > 49.0) { // Keep them inside
+                                      tg.setVelocity(c.toVector().subtract(tg.getLocation().toVector()).normalize().multiply(1.5));
+                                  }
+                              }
+                          });
+                      }
+                  }
               }
 
-              @EventHandler(priority = EventPriority.MONITOR)
-              public void onKill(EntityDeathEvent e) {
-                  Player killer = e.getEntity().getKiller();
-                  if (killer == null) return;
-                  if (!(e.getEntity() instanceof Player victim)) return;
-
-                  ItemStack gem = gm.getWieldedGem(killer);
-                  if (gem == null) return;
-
-                  if (gm.addUniquePlayerKill(gem, victim.getUniqueId())) {
-                      AspectType a = gm.getGemAspect(gem);
-                      int newKills = Math.min(5, gm.getGemKills(gem) + 1);
-                      gm.updateMeta(gem, a, newKills);
-                      killer.sendMessage(Component.text("★ Harvested Unique Soul of " + victim.getName() + "! Gem upgraded to Tier " + newKills + "! ★", NamedTextColor.GOLD));
-                      killer.playSound(killer.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 2.0f, 1.0f);
-                  } else {
-                      killer.sendMessage(Component.text("You have already harvested this player's soul!", NamedTextColor.RED));
+              // Particle Helpers
+              public static void drawCube(Location c, double size, Particle p, Object data) {
+                  World w = c.getWorld();
+                  double s2 = size / 2.0;
+                  for (double x = -s2; x <= s2; x += 0.5) {
+                      for (double y = -s2; y <= s2; y += 0.5) {
+                          for (double z = -s2; z <= s2; z += 0.5) {
+                              if (Math.abs(x) == s2 || Math.abs(y) == s2 || Math.abs(z) == s2) {
+                                  w.spawnParticle(p, c.clone().add(x, y + 1.0, z), 1, 0, 0, 0, 0, data);
+                              }
+                          }
+                      }
                   }
               }
           }
@@ -857,55 +1202,133 @@ jobs:
               }
           }""")
 
-          # Multi-Silhouette Procedural Gem PNG Generator (10 Unique Geometries)
+          # Multi-Silhouette 16x16 Pixel Art PNG Engine (10 Unique Geometries)
           def make_gem_png(shape_id, color, accent):
               w, h = 16, 16
+              masks = {
+                  "square": [ # Terra (Heavy Rune Tablet)
+                      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                      0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,
+                      0,0,1,3,3,3,3,3,3,3,3,2,2,1,0,0,
+                      0,1,3,3,3,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,3,3,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,3,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,3,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,3,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,3,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,3,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,
+                      0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,
+                      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                  ],
+                  "shard": [ # Frost / Storm / Phantom
+                      0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,
+                      0,0,0,0,0,0,1,3,3,1,0,0,0,0,0,0,
+                      0,0,0,0,0,1,3,3,3,2,1,0,0,0,0,0,
+                      0,0,0,0,1,3,3,3,2,2,2,1,0,0,0,0,
+                      0,0,0,1,3,3,3,2,2,2,2,2,1,0,0,0,
+                      0,0,1,3,3,2,2,2,2,2,2,2,2,1,0,0,
+                      0,1,3,3,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,
+                      0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0,
+                      0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,
+                      0,0,0,0,0,1,2,2,2,2,1,0,0,0,0,0,
+                      0,0,0,0,0,0,1,2,2,1,0,0,0,0,0,0,
+                      0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,
+                      0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,
+                      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                  ],
+                  "crescent": [ # Reaper / Void
+                      0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
+                      0,0,0,0,1,1,3,3,3,2,1,1,0,0,0,0,
+                      0,0,0,1,3,3,3,1,1,1,2,2,1,0,0,0,
+                      0,0,1,3,3,1,0,0,0,0,1,2,2,1,0,0,
+                      0,1,3,3,1,0,0,0,0,0,0,1,2,2,1,0,
+                      0,1,3,2,1,0,0,0,0,0,0,1,2,2,1,0,
+                      1,3,2,1,0,0,0,0,0,0,0,0,1,2,2,1,
+                      1,3,2,1,0,0,0,0,0,0,0,0,1,2,2,1,
+                      1,3,2,1,0,0,0,0,0,0,0,0,1,2,2,1,
+                      0,1,3,2,1,0,0,0,0,0,0,1,2,2,1,0,
+                      0,1,2,2,1,0,0,0,0,0,0,1,2,2,1,0,
+                      0,0,1,2,2,1,0,0,0,0,1,2,2,1,0,0,
+                      0,0,0,1,2,2,1,1,1,1,2,2,1,0,0,0,
+                      0,0,0,0,1,1,2,2,2,2,1,1,0,0,0,0,
+                      0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
+                      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                  ],
+                  "shield": [ # Aegis / Knight
+                      0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,
+                      0,0,1,3,3,3,3,3,3,3,3,2,2,1,0,0,
+                      0,1,3,3,3,3,3,3,3,3,2,2,2,2,1,0,
+                      0,1,3,3,3,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,3,3,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,3,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,3,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,
+                      0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,
+                      0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0,
+                      0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0,
+                      0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,
+                      0,0,0,0,0,1,2,2,2,2,1,0,0,0,0,0,
+                      0,0,0,0,0,0,1,2,2,1,0,0,0,0,0,0,
+                      0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,
+                      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                  ],
+                  "clover": [ # Bloom
+                      0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
+                      0,0,0,0,1,1,3,3,2,2,1,1,0,0,0,0,
+                      0,0,1,1,3,3,3,3,2,2,2,2,1,1,0,0,
+                      0,1,3,3,3,3,1,1,1,1,2,2,2,2,1,0,
+                      0,1,3,3,3,1,3,3,2,2,1,2,2,2,1,0,
+                      0,1,3,3,1,3,3,3,2,2,2,1,2,2,1,0,
+                      1,3,3,1,3,3,3,3,2,2,2,2,1,2,2,1,
+                      1,3,3,1,3,3,3,3,2,2,2,2,1,2,2,1,
+                      1,2,2,1,2,2,2,2,3,3,3,3,1,3,3,1,
+                      1,2,2,1,2,2,2,2,3,3,3,3,1,3,3,1,
+                      0,1,2,2,1,2,2,2,3,3,3,1,3,3,1,0,
+                      0,1,2,2,2,1,2,2,3,3,1,3,3,3,1,0,
+                      0,1,2,2,2,2,1,1,1,1,3,3,3,3,1,0,
+                      0,0,1,1,2,2,2,2,3,3,3,3,1,1,0,0,
+                      0,0,0,0,1,1,2,2,3,3,1,1,0,0,0,0,
+                      0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0
+                  ],
+                  "flame": [ # Rage
+                      0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,
+                      0,0,0,0,0,0,1,3,2,1,0,0,0,0,0,0,
+                      0,0,0,0,0,1,3,3,2,1,0,0,0,0,0,0,
+                      0,0,0,0,1,3,3,2,2,1,0,0,0,0,0,0,
+                      0,0,0,1,3,3,2,2,1,1,1,0,0,0,0,0,
+                      0,0,1,3,3,3,2,1,3,2,1,0,0,0,0,0,
+                      0,0,1,3,3,2,2,1,2,2,1,0,0,0,0,0,
+                      0,1,3,3,3,2,2,2,1,1,0,0,0,0,0,0,
+                      0,1,3,3,2,2,2,2,2,1,1,1,0,0,0,0,
+                      1,3,3,3,2,2,2,2,2,2,3,2,1,0,0,0,
+                      1,3,3,2,2,2,2,2,2,2,2,2,1,0,0,0,
+                      1,3,2,2,2,2,2,2,2,2,2,1,0,0,0,0,
+                      0,1,2,2,2,2,2,2,2,2,1,0,0,0,0,0,
+                      0,0,1,1,2,2,2,2,1,1,0,0,0,0,0,0,
+                      0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,
+                      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                  ]
+              }
+              mask = masks.get(shape_type, masks["shard"])
               raw = bytearray()
               for y in range(h):
                   raw.append(0)
                   for x in range(w):
-                      dx, dy = abs(x - 7.5), abs(y - 7.5)
-                      inside, border, highlight = False, False, False
-
-                      if shape_id == "square":      # Terra (Heavy Rune Tablet)
-                          inside = max(dx, dy) <= 5.5
-                          border = max(dx, dy) >= 4.5 and inside
-                          highlight = (x == 3 or y == 3) and inside
-                      elif shape_id == "shard":     # Frost / Storm (Sharp Crystalline Icicle)
-                          inside = (dx * 1.5 + dy) <= 7.5 and dy <= 6.5
-                          border = (dx * 1.5 + dy) >= 6.0 and inside
-                          highlight = dx <= 1.0 and dy <= 4.0
-                      elif shape_id == "crescent":  # Reaper / Void (Curved Scythe / Crescent)
-                          d1 = (x - 7.5)**2 + (y - 7.5)**2 <= 36
-                          d2 = (x - 9.5)**2 + (y - 6.5)**2 <= 28
-                          inside = d1 and not d2
-                          border = inside and ((x - 7.5)**2 + (y - 7.5)**2 >= 26 or d2)
-                          highlight = inside and y <= 6
-                      elif shape_id == "shield":    # Aegis / Knight (Royal Kite Shield)
-                          inside = dx <= 5.5 and (y <= 8 or (dx + (y - 8) * 0.8) <= 5.5)
-                          border = inside and (dx >= 4.5 or (y >= 7 and (dx + (y - 8) * 0.8) >= 4.5))
-                          highlight = inside and dx <= 2.0 and y <= 5
-                      elif shape_id == "clover":    # Bloom (4-Petal Clover Blossom)
-                          inside = (dx <= 4.5 and dy <= 2.0) or (dx <= 2.0 and dy <= 4.5)
-                          border = inside and (max(dx, dy) >= 3.5 or (dx >= 1.5 and dy >= 1.5))
-                          highlight = inside and dx <= 1.0 and dy <= 1.0
-                      elif shape_id == "flame":     # Rage (Serrated Flame Teardrop)
-                          inside = (dx * (1.0 + (y - 2) * 0.15) + dy) <= 7.5 and y >= 2
-                          border = inside and ((dx * (1.0 + (y - 2) * 0.15) + dy) >= 6.0 or y == 2)
-                          highlight = inside and x == 7 and y <= 6
-                      else:
-                          inside = dx + dy <= 6.5
-                          border = inside and dx + dy >= 5.0
-                          highlight = inside and y <= 4
-
-                      if not inside:
+                      val = mask[y * 16 + x]
+                      if val == 0:
                           raw.extend([0, 0, 0, 0])
-                      elif border:
-                          raw.extend([accent[0] // 3, accent[1] // 3, accent[2] // 3, 255])
-                      elif highlight:
-                          raw.extend([min(255, color[0] + 80), min(255, color[1] + 80), min(255, color[2] + 80), 255])
-                      else:
+                      elif val == 1:
+                          raw.extend([max(0, accent[0] // 3), max(0, accent[1] // 3), max(0, accent[2] // 3), 255])
+                      elif val == 2:
                           raw.extend([color[0], color[1], color[2], 255])
+                      elif val == 3:
+                          raw.extend([min(255, color[0] + 75), min(255, color[1] + 75), min(255, color[2] + 75), 255])
 
               def chunk(tag, data):
                   return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xffffffff)
@@ -933,7 +1356,7 @@ jobs:
             "pack": {
               "pack_format": 34,
               "supported_formats": [34, 46],
-              "description": "BlissAspects Official Procedural Gem Textures"
+              "description": "BlissAspects Official Vector Gem Texture Pack"
             }
           }""")
 
