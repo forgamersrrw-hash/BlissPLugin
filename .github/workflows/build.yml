@@ -30,7 +30,7 @@ jobs:
               <modelVersion>4.0.0</modelVersion>
               <groupId>com.bliss</groupId>
               <artifactId>BlissAspects</artifactId>
-              <version>10.1.0</version>
+              <version>12.0.0</version>
               <packaging>jar</packaging>
               <properties><java.version>21</java.version><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding></properties>
               <repositories>
@@ -44,7 +44,7 @@ jobs:
           </project>""")
 
           save("src/main/resources/plugin.yml", r"""name: BlissAspects
-          version: 10.1.0
+          version: 12.0.0
           main: com.bliss.aspects.BlissAspects
           api-version: '1.21'
           commands:
@@ -144,7 +144,7 @@ jobs:
                   Objects.requireNonNull(getCommand("aspect")).setExecutor(cmd);
                   Objects.requireNonNull(getCommand("aspect")).setTabCompleter(cmd);
 
-                  // Continuous Bliss Ambient FX & Halo Loop
+                  // Continuous Bliss Ambient Halo & Passive Loop
                   Bukkit.getScheduler().runTaskTimer(this, () -> {
                       for (Player p : Bukkit.getOnlinePlayers()) {
                           ItemStack gem = gm.getWieldedGem(p);
@@ -156,14 +156,14 @@ jobs:
                           Location loc = p.getLocation().add(0, 0.7, 0);
 
                           if (tier == 5) {
-                              drawDenseRing(loc.clone().add(0, 1.4, 0), 0.5, Particle.END_ROD, 16, 1);
-                              spawnColoredDust(loc.clone().add(0, 1.4, 0), t.getPrimaryColor(), 1.2f, 4);
+                              drawDenseRing(loc.clone().add(0, 1.4, 0), 0.45, Particle.END_ROD, 14, 1);
+                              spawnDust(loc.clone().add(0, 1.4, 0), t.getPrimaryColor(), 1.2f, 3);
                           }
 
-                          spawnColoredDust(loc, t.getPrimaryColor(), 1.0f, tier >= 3 ? 6 : 3);
+                          spawnDust(loc, t.getPrimaryColor(), 0.9f, tier >= 3 ? 5 : 2);
                           switch (t) {
                               case STORM -> {
-                                  p.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, loc, tier >= 3 ? 8 : 4, 0.35, 0.45, 0.35, 0.08);
+                                  p.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, loc, tier >= 3 ? 8 : 3, 0.3, 0.4, 0.3, 0.05);
                                   p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 40, tier >= 4 ? 1 : 0, false, false, false));
                               }
                               case TERRA -> p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 40, tier >= 4 ? 1 : 0, false, false, false));
@@ -171,7 +171,7 @@ jobs:
                               case RAGE -> {
                                   if (p.getHealth() <= p.getMaxHealth() / 2.0) {
                                       p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 40, tier >= 4 ? 1 : 0, false, false, false));
-                                      p.getWorld().spawnParticle(Particle.FLAME, loc, 6, 0.25, 0.4, 0.25, 0.02);
+                                      p.getWorld().spawnParticle(Particle.FLAME, loc, 6, 0.2, 0.3, 0.2, 0.02);
                                   }
                               }
                               case VOID -> {
@@ -186,15 +186,14 @@ jobs:
                   }, 0L, 20L);
               }
 
-              // Custom Colored Dust Particle Spawner with Full 8 Parameters
-              public static void spawnColoredDust(Location loc, Color c, float size, int count) {
-                  loc.getWorld().spawnParticle(Particle.DUST, loc, count, 0.3, 0.3, 0.3, 0.0, new DustOptions(c, size));
+              // High-Performance Visual Mathematics Engine
+              public static void spawnDust(Location loc, Color c, float size, int count) {
+                  loc.getWorld().spawnParticle(Particle.DUST, loc, count, 0.25, 0.25, 0.25, 0.0, new DustOptions(c, size));
               }
 
-              // Dedicated Dust Ring Engine
               public static void drawDustRing(Location center, double radius, Color c, int points) {
                   World w = center.getWorld();
-                  DustOptions dust = new DustOptions(c, 1.5f);
+                  DustOptions dust = new DustOptions(c, 1.3f);
                   for (int i = 0; i < points; i++) {
                       double a = 2 * Math.PI * i / points;
                       Location pt = center.clone().add(Math.cos(a) * radius, 0.05, Math.sin(a) * radius);
@@ -202,23 +201,20 @@ jobs:
                   }
               }
 
-              // Anime-Style Magical Floor Seal (Double Concentric Rings + Cross-Spokes)
-              public static void drawMagicSeal(Location center, double radius, double rot, Color color, Particle accent) {
+              public static void drawMagicSeal(Location center, double radius, double rot, Color c1, Color c2, Particle accent) {
                   World w = center.getWorld();
                   int ptsOuter = 48;
                   int ptsInner = 24;
-                  DustOptions outerDust = new DustOptions(color, 1.4f);
-                  DustOptions innerDust = new DustOptions(color, 1.1f);
+                  DustOptions d1 = new DustOptions(c1, 1.4f);
+                  DustOptions d2 = new DustOptions(c2, 1.1f);
 
                   for (int i = 0; i < ptsOuter; i++) {
                       double a = 2 * Math.PI * i / ptsOuter + rot;
-                      Location pt = center.clone().add(Math.cos(a) * radius, 0.05, Math.sin(a) * radius);
-                      w.spawnParticle(Particle.DUST, pt, 1, 0.0, 0.0, 0.0, 0.0, outerDust);
+                      w.spawnParticle(Particle.DUST, center.clone().add(Math.cos(a) * radius, 0.05, Math.sin(a) * radius), 1, 0.0, 0.0, 0.0, 0.0, d1);
                   }
                   for (int i = 0; i < ptsInner; i++) {
                       double a = 2 * Math.PI * i / ptsInner - rot;
-                      Location pt = center.clone().add(Math.cos(a) * (radius * 0.55), 0.05, Math.sin(a) * (radius * 0.55));
-                      w.spawnParticle(Particle.DUST, pt, 1, 0.0, 0.0, 0.0, 0.0, innerDust);
+                      w.spawnParticle(Particle.DUST, center.clone().add(Math.cos(a) * (radius * 0.55), 0.05, Math.sin(a) * (radius * 0.55)), 1, 0.0, 0.0, 0.0, 0.0, d2);
                   }
                   for (int i = 0; i < 6; i++) {
                       double a = 2 * Math.PI * i / 6 + rot;
@@ -227,27 +223,25 @@ jobs:
                   }
               }
 
-              // Orbital Shields (3 Energy Orbs orbiting the player)
-              public static void drawOrbitalShield(Location center, double radius, double time, Color c, Particle accent) {
+              public static void drawOrbitals(Location center, double radius, double time, Color c, Particle accent) {
                   World w = center.getWorld();
                   DustOptions dust = new DustOptions(c, 1.6f);
                   for (int i = 0; i < 3; i++) {
                       double a = time + (i * (2 * Math.PI / 3));
                       Location orb = center.clone().add(Math.cos(a) * radius, 1.0 + Math.sin(a * 2) * 0.25, Math.sin(a) * radius);
-                      w.spawnParticle(Particle.DUST, orb, 5, 0.08, 0.08, 0.08, 0.0, dust);
+                      w.spawnParticle(Particle.DUST, orb, 4, 0.08, 0.08, 0.08, 0.0, dust);
                       if (accent != null) w.spawnParticle(accent, orb, 1, 0.0, 0.0, 0.0, 0.0);
                   }
               }
 
-              // Skyward Pillar of Energy
-              public static void drawPillarOfLight(Location base, double height, Color c, Particle accent) {
+              public static void drawSkyPillar(Location base, double height, Color c, Particle accent) {
                   World w = base.getWorld();
                   DustOptions dust = new DustOptions(c, 1.8f);
                   for (double y = 0; y < height; y += 0.8) {
                       Location pt = base.clone().add(0, y, 0);
-                      w.spawnParticle(Particle.DUST, pt, 4, 0.3, 0.1, 0.3, 0.0, dust);
+                      w.spawnParticle(Particle.DUST, pt, 3, 0.25, 0.1, 0.25, 0.0, dust);
                       if (accent != null && y % 2.4 < 0.8) {
-                          w.spawnParticle(accent, pt, 2, 0.2, 0.2, 0.2, 0.02);
+                          w.spawnParticle(accent, pt, 2, 0.15, 0.15, 0.15, 0.02);
                       }
                   }
               }
@@ -255,16 +249,7 @@ jobs:
               public static void drawDenseRing(Location center, double radius, Particle p, int points, int perPoint) {
                   for (int i = 0; i < points; i++) {
                       double a = 2 * Math.PI * i / points;
-                      Location pt = center.clone().add(Math.cos(a) * radius, 0.05, Math.sin(a) * radius);
-                      center.getWorld().spawnParticle(p, pt, perPoint, 0.02, 0.02, 0.02, 0.01);
-                  }
-              }
-
-              public static void drawDenseDome(Location center, double radius, Particle p, int layers) {
-                  for (int layer = 1; layer <= layers; layer++) {
-                      double y = (layer / (double) layers) * radius;
-                      double r = Math.sqrt(Math.max(0, radius * radius - y * y));
-                      drawDenseRing(center.clone().add(0, y, 0), r, p, 24, 1);
+                      center.getWorld().spawnParticle(p, center.clone().add(Math.cos(a) * radius, 0.05, Math.sin(a) * radius), perPoint, 0.02, 0.02, 0.02, 0.01);
                   }
               }
 
@@ -280,12 +265,11 @@ jobs:
                       w.spawnParticle(Particle.DUST, p1, 1, 0.0, 0.0, 0.0, 0.0, dust);
                       w.spawnParticle(Particle.DUST, p2, 1, 0.0, 0.0, 0.0, 0.0, dust);
                       if (accent != null && d % 1.2 < 0.3) {
-                          w.spawnParticle(accent, base, 3, 0.1, 0.1, 0.1, 0.02);
+                          w.spawnParticle(accent, base, 2, 0.05, 0.05, 0.05, 0.02);
                       }
                   }
               }
 
-              // Safe Task Engine with Auto-Cleanup & Guaranteed Expiration
               public void spawnTask(int durationTicks, int periodTicks, Consumer<Integer> tickAction) {
                   new BukkitRunnable() {
                       int elapsed = 0;
@@ -307,25 +291,25 @@ jobs:
 
           enum AspectType {
               TERRA("Terra", NamedTextColor.GOLD, 1001, Color.fromRGB(218, 140, 40), Color.fromRGB(110, 80, 50),
-                    "Seismic Fissure", "Titan Fortress Shield", "Gravity Quake", "Tectonic Cataclysm", "Knockback II & Protection III", "LEGENDARY"),
+                    "Seismic Fissure", "Titan Fortress Stance", "Gravity Quake", "World-Breaker Faultline", "Knockback II & Protection III", "LEGENDARY"),
               FROST("Frost", TextColor.color(0x70D6FF), 1002, Color.fromRGB(100, 220, 255), Color.fromRGB(240, 255, 255),
-                    "Blizzard Helix Beam", "Glacial Ice Armor", "Ice Age Rune", "Absolute Zero Storm", "Frost Walker II & Freezing Edge", "RARE"),
+                    "Blizzard Helix Beam", "Glacial Ice Armor", "Ice Age Rune", "Glacial Extinction", "Frost Walker II & Freezing Edge", "RARE"),
               REAPER("Reaper", NamedTextColor.DARK_PURPLE, 1003, Color.fromRGB(0, 255, 210), Color.fromRGB(90, 20, 160),
-                    "Soul Crescent Wave", "Wraith Trance", "Death's Leash", "Harvesting Eclipse", "Sweeping Edge III & Soul Siphon", "MYTHIC"),
+                    "Soul Crescent Wave", "Wraith Trance", "Death's Leash", "Harvest of the Damned", "Sweeping Edge III & Soul Siphon", "MYTHIC"),
               RAGE("Rage", NamedTextColor.RED, 1004, Color.fromRGB(255, 25, 25), Color.fromRGB(255, 120, 0),
-                    "Infernal Magma Wave", "Berserker Rampage", "Blood Pull", "Hellfire Cataclysm", "Fire Aspect II & 100% AUTOCRIT", "LEGENDARY"),
+                    "Infernal Magma Wave", "Berserker Rampage", "Blood Pull", "Ashen Blood Calamity", "Fire Aspect II & 100% AUTOCRIT", "LEGENDARY"),
               AEGIS("Aegis", TextColor.color(0xFFD166), 1005, Color.fromRGB(255, 215, 60), Color.fromRGB(255, 255, 220),
-                    "Radiant Celestial Spear", "Divine Sanctuary Dome", "Repulsion Wave", "Judgement Cataclysm", "Protection IV & Thorns III", "EPIC"),
+                    "Radiant Celestial Spear", "Divine Sanctuary Dome", "Repulsion Wave", "Heavenly Retribution", "Protection IV & Thorns III", "EPIC"),
               BLOOM("Bloom", NamedTextColor.GREEN, 1006, Color.fromRGB(60, 255, 60), Color.fromRGB(255, 120, 180),
-                    "Bramble Piercing Lance", "Verdant Cocoon", "Floral Rooting", "Eden's Overgrowth", "Mending & Natural Regrowth", "RARE"),
+                    "Bramble Piercing Lance", "Verdant Cocoon", "Floral Rooting", "World Tree Genesis", "Mending & Natural Regrowth", "RARE"),
               STORM("Storm", NamedTextColor.AQUA, 1007, Color.fromRGB(0, 240, 255), Color.fromRGB(255, 240, 40),
-                    "Tempest Arc Discharge", "Supercharged State", "Static Pull", "Overdrive Thunderstorm", "Channeling & Lightning Strike", "MYTHIC"),
+                    "Tempest Arc Discharge", "Supercharged State", "Static Pull", "Wrath of the Thunder God", "Channeling & Lightning Strike", "MYTHIC"),
               VOID("Void", TextColor.color(0x9D4EDD), 1008, Color.fromRGB(140, 0, 255), Color.fromRGB(40, 0, 70),
-                    "Singularity Beam", "Dimensional Rift", "Zero-Gravity Well", "Void Collapse", "Feather Falling IV & Void Repel", "TRANSCENDENT"),
+                    "Singularity Ray", "Dimensional Rift", "Zero-Gravity Well", "Singularity Zero", "Feather Falling IV & Void Repel", "TRANSCENDENT"),
               PHANTOM("Phantom", NamedTextColor.DARK_GRAY, 1009, Color.fromRGB(40, 220, 180), Color.fromRGB(80, 80, 90),
-                    "Shadow Assassination", "Cloaked Stealth", "Smoke Decoy", "Midnight Requiem", "Swift Sneak III & True Invisibility", "EPIC"),
+                    "Shadow Assassination", "Cloaked Stealth", "Smoke Decoy", "Realm of Shadows", "Swift Sneak III & True Invisibility", "EPIC"),
               KNIGHT("Knight", NamedTextColor.WHITE, 1010, Color.fromRGB(240, 240, 255), Color.fromRGB(255, 200, 80),
-                    "Jousting Charge", "Iron Guard State", "War Tremor", "Colossus Juggernaut", "+6 Armor & Unyielding Poise", "RARE");
+                    "Jousting Charge", "Iron Guard Stance", "War Tremor", "Colossus Bulwark", "+6 Armor & Unyielding Poise", "RARE");
 
               private final String d, m1, m2, m3, m4, p, rarity;
               private final int cmd;
@@ -417,17 +401,17 @@ jobs:
                   lore.add(Component.text("  " + a.getPassiveDesc(), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.empty());
                   lore.add(Component.text("✦ [R-CLICK]  " + a.getM1(), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("  Primary elemental burst / heavy impact", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("  Primary elemental burst / directional strike", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("✦ [SHIFT+R]  " + a.getM2(), NamedTextColor.AQUA).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("  Sustained orbital shield / evasive state", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("  Orbital planetary shield / evasive stance", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("✦ [L-CLICK]  " + a.getM3(), NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("  Floor magical seal / crowd control snare", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("✦ [PRESS Q]  " + a.getM4() + " [ULTIMATE]", NamedTextColor.RED).decorate(TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("  Cataclysmic room-clearing 3-stage domain", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("  Cataclysmic room-clearing 3-stage ritual", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("──────────────────────────────", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("✦ STAT BONUSES: ", NamedTextColor.LIGHT_PURPLE).append(Component.text("+" + (tier * 10) + "% DMG ", NamedTextColor.RED)).append(Component.text("| -" + (tier * 6) + "% CD", NamedTextColor.GREEN)).decoration(TextDecoration.ITALIC, false));
                   if (tier >= 4) lore.add(Component.text("☠ Execute: +30% True Damage on targets below 35% HP", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
-                  if (tier == 5) lore.add(Component.text("👑 Ascended: Radiant Halo & Max Particle Density", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+                  if (tier == 5) lore.add(Component.text("👑 Ascended: Radiant Halo & Max Duration", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("Hold in Main Hand or Offhand to wield.", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, true));
 
                   m.lore(lore);
@@ -502,7 +486,7 @@ jobs:
                       ItemStack gem = gm.getWieldedGem(p);
                       if (gem != null && gm.getGemAspect(gem) == AspectType.RAGE) {
                           e.setDamage(e.getDamage() * 1.5);
-                          p.getWorld().spawnParticle(Particle.CRIT, e.getEntity().getLocation().add(0, 1.2, 0), 40, 0.4, 0.4, 0.4, 0.3);
+                          p.getWorld().spawnParticle(Particle.CRIT, e.getEntity().getLocation().add(0, 1.2, 0), 30, 0.3, 0.3, 0.3, 0.2);
                           p.getWorld().playSound(p.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1.8f, 0.7f);
                       }
                   }
@@ -565,7 +549,7 @@ jobs:
                   }
               }
 
-              // MOVE 1: EXPLOSIVE DIRECTIONAL BEAMS
+              // MOVE 1: CINEMATIC BEAMS & CRATER IMPACTS
               private boolean castMove1(Player p, AspectType a, int tier, double dM, double cM) {
                   String k = "m1";
                   double baseCd = cd.getConfigCooldown(a, 1);
@@ -577,155 +561,129 @@ jobs:
 
                   switch (a) {
                       case TERRA -> {
-                          p.setVelocity(dir.clone().setY(0.75).multiply(1.3));
+                          p.setVelocity(dir.clone().setY(0.7).multiply(1.2));
                           w.playSound(eye, Sound.ENTITY_IRON_GOLEM_ATTACK, 2f, 0.5f);
                           new BukkitRunnable() {
                               int t = 0;
                               public void run() {
-                                  if (p.isOnGround() || ++t > 30) {
+                                  if (p.isOnGround() || ++t > 25) {
                                       Location slam = p.getLocation();
-                                      w.playSound(slam, Sound.ENTITY_GENERIC_EXPLODE, 2.5f, 0.5f);
-                                      w.spawnParticle(Particle.EXPLOSION, slam.clone().add(0, 0.5, 0), 4);
-                                      pl.spawnTask(50 + (tier * 10), 2, step -> {
-                                          double r = 1.0 + (step * 0.15);
-                                          BlissAspects.drawDenseRing(slam, r, Particle.BLOCK, 48, 3);
-                                          BlissAspects.spawnColoredDust(slam, a.getPrimaryColor(), 1.5f, 15);
-                                          for (Entity e : slam.getWorld().getNearbyEntities(slam, r, 2.5, r)) if (e instanceof LivingEntity tg && tg != p) {
-                                              tg.damage(applyExecute(tg, 2.5 * dM, tier), p);
-                                              tg.setVelocity(new Vector(0, 0.35, 0));
-                                          }
-                                      });
+                                      w.playSound(slam, Sound.ENTITY_GENERIC_EXPLODE, 2.0f, 0.6f);
+                                      BlissAspects.drawDustRing(slam, 2.8, a.getPrimaryColor(), 40);
+                                      BlissAspects.drawDenseRing(slam, 3.8, Particle.BLOCK, 32, 2);
+                                      for (Entity e : slam.getWorld().getNearbyEntities(slam, 5.5, 2.5, 5.5)) if (e instanceof LivingEntity tg && tg != p) {
+                                          tg.damage(applyExecute(tg, 8.5 * dM, tier), p);
+                                          tg.setVelocity(new Vector(0, 0.45, 0));
+                                      }
                                       cancel();
                                   }
                               }
-                          }.runTaskTimer(pl, 5L, 1L);
+                          }.runTaskTimer(pl, 4L, 1L);
                       }
                       case FROST -> {
-                          w.playSound(eye, Sound.BLOCK_GLASS_BREAK, 2.5f, 0.5f);
-                          w.playSound(eye, Sound.ENTITY_PLAYER_HURT_FREEZE, 2f, 1.5f);
-                          BlissAspects.drawHelixBeam(eye, dir, 16.0, a.getPrimaryColor(), Particle.END_ROD);
-                          for (int i = 1; i <= 16; i++) {
+                          w.playSound(eye, Sound.BLOCK_GLASS_BREAK, 2.0f, 0.6f);
+                          BlissAspects.drawHelixBeam(eye, dir, 15.0, a.getPrimaryColor(), Particle.SNOWFLAKE);
+                          for (int i = 1; i <= 15; i++) {
                               Location pt = eye.clone().add(dir.clone().multiply(i));
-                              w.spawnParticle(Particle.SNOWFLAKE, pt, 12, 0.3, 0.3, 0.3, 0.05);
-                              for (Entity e : w.getNearbyEntities(pt, 2.0, 2.0, 2.0)) if (e instanceof LivingEntity tg && tg != p) {
+                              for (Entity e : w.getNearbyEntities(pt, 1.8, 1.8, 1.8)) if (e instanceof LivingEntity tg && tg != p) {
                                   tg.damage(applyExecute(tg, 7.5 * dM, tier), p);
-                                  tg.setFreezeTicks(350);
+                                  tg.setFreezeTicks(300);
                                   tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 80, 2));
                               }
                           }
                       }
                       case REAPER -> {
-                          w.playSound(eye, Sound.ENTITY_WITHER_SHOOT, 2f, 1.4f);
-                          BlissAspects.drawHelixBeam(eye, dir, 14.0, a.getPrimaryColor(), Particle.SCULK_SOUL);
-                          pl.spawnTask(50 + (tier * 10), 2, step -> {
-                              Location arcLoc = eye.clone().add(dir.clone().multiply(step * 0.4));
-                              BlissAspects.drawDenseRing(arcLoc, 2.0, Particle.SOUL_FIRE_FLAME, 32, 2);
-                              double stolen = 0;
-                              for (Entity e : arcLoc.getWorld().getNearbyEntities(arcLoc, 2.5, 2.5, 2.5)) if (e instanceof LivingEntity tg && tg != p) {
-                                  tg.damage(applyExecute(tg, 2.5 * dM, tier), p);
+                          w.playSound(eye, Sound.ENTITY_WITHER_SHOOT, 1.8f, 1.5f);
+                          BlissAspects.drawHelixBeam(eye, dir, 14.0, a.getPrimaryColor(), Particle.SOUL_FIRE_FLAME);
+                          double st = 0;
+                          for (int i = 1; i <= 14; i++) {
+                              Location pt = eye.clone().add(dir.clone().multiply(i));
+                              for (Entity e : w.getNearbyEntities(pt, 1.8, 1.8, 1.8)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.damage(applyExecute(tg, 8.0 * dM, tier), p);
                                   tg.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 80, 1));
-                                  stolen += 1.8;
+                                  st += 2.0;
                               }
-                              if (stolen > 0) p.setHealth(Math.min(p.getMaxHealth(), p.getHealth() + stolen));
-                          });
+                          }
+                          if (st > 0) p.setHealth(Math.min(p.getMaxHealth(), p.getHealth() + st));
                       }
                       case RAGE -> {
                           if (p.getHealth() > 2.0) p.setHealth(p.getHealth() - 2.0);
-                          w.playSound(eye, Sound.ENTITY_RAVAGER_ATTACK, 2.5f, 0.8f);
-                          Location start = eye.clone();
-                          pl.spawnTask(50 + (tier * 10), 2, step -> {
-                              Location wave = start.clone().add(dir.clone().multiply(step * 0.45));
-                              BlissAspects.drawDenseRing(wave, 2.5, Particle.LAVA, 24, 2);
-                              BlissAspects.spawnColoredDust(wave, a.getPrimaryColor(), 1.6f, 25);
-                              w.spawnParticle(Particle.SWEEP_ATTACK, wave, 4, 0.4, 0.4, 0.4);
-                              for (Entity e : wave.getWorld().getNearbyEntities(wave, 3.0, 2.5, 3.0)) if (e instanceof LivingEntity tg && tg != p) {
-                                  tg.damage(applyExecute(tg, 3.5 * dM, tier), p);
-                                  tg.setFireTicks(100);
-                              }
-                          });
+                          w.playSound(eye, Sound.ENTITY_RAVAGER_ATTACK, 2.0f, 0.8f);
+                          BlissAspects.drawHelixBeam(eye, dir, 12.0, a.getPrimaryColor(), Particle.FLAME);
+                          for (Entity e : p.getNearbyEntities(5, 2.5, 5)) if (e instanceof LivingEntity tg && tg != p) {
+                              tg.damage(applyExecute(tg, 9.0 * dM, tier), p);
+                              tg.setFireTicks(80);
+                          }
                       }
                       case AEGIS -> {
-                          RayTraceResult r = p.rayTraceBlocks(24);
+                          RayTraceResult r = p.rayTraceBlocks(22);
                           Location tgt = (r != null && r.getHitPosition() != null) ? r.getHitPosition().toLocation(w) : eye.clone().add(dir.clone().multiply(14));
-                          w.playSound(tgt, Sound.ITEM_TRIDENT_THUNDER, 2.5f, 1.2f);
-                          pl.spawnTask(60 + (tier * 10), 2, step -> {
-                              BlissAspects.drawDenseRing(tgt.clone().add(0, (step % 20) * 0.4, 0), 2.2, Particle.END_ROD, 36, 2);
-                              BlissAspects.spawnColoredDust(tgt, a.getPrimaryColor(), 1.8f, 20);
-                              w.spawnParticle(Particle.FLASH, tgt.clone().add(0, 1.0, 0), 2);
-                              for (Entity e : tgt.getWorld().getNearbyEntities(tgt, 4.5, 6.0, 4.5)) if (e instanceof LivingEntity tg && tg != p) {
-                                  tg.damage(applyExecute(tg, 2.8 * dM, tier), p);
-                                  tg.setFireTicks(80);
-                              }
-                          });
+                          w.playSound(tgt, Sound.ITEM_TRIDENT_THUNDER, 2.0f, 1.3f);
+                          BlissAspects.drawDustRing(tgt, 2.5, a.getPrimaryColor(), 32);
+                          w.spawnParticle(Particle.END_ROD, tgt.clone().add(0, 1, 0), 20, 0.3, 2.0, 0.3, 0.05);
+                          for (Entity e : tgt.getWorld().getNearbyEntities(tgt, 4.5, 4.0, 4.5)) if (e instanceof LivingEntity tg && tg != p) {
+                              tg.damage(applyExecute(tg, 9.5 * dM, tier), p);
+                              tg.setFireTicks(80);
+                          }
                       }
                       case BLOOM -> {
-                          w.playSound(eye, Sound.BLOCK_VINE_BREAK, 2.5f, 0.7f);
-                          BlissAspects.drawHelixBeam(eye, dir, 14.0, a.getPrimaryColor(), Particle.POOF);
-                          pl.spawnTask(50 + (tier * 10), 2, step -> {
-                              Location vine = eye.clone().add(dir.clone().multiply(step * 0.4));
-                              BlissAspects.drawDenseRing(vine, 1.8, Particle.HAPPY_VILLAGER, 28, 2);
-                              BlissAspects.spawnColoredDust(vine, a.getSecondaryColor(), 1.4f, 15);
-                              for (Entity e : vine.getWorld().getNearbyEntities(vine, 2.4, 2.4, 2.4)) if (e instanceof LivingEntity tg && tg != p) {
-                                  tg.damage(applyExecute(tg, 2.5 * dM, tier), p);
-                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 100, 1));
+                          w.playSound(eye, Sound.BLOCK_VINE_BREAK, 2.0f, 0.7f);
+                          BlissAspects.drawHelixBeam(eye, dir, 14.0, a.getPrimaryColor(), Particle.HAPPY_VILLAGER);
+                          for (int i = 1; i <= 14; i++) {
+                              Location pt = eye.clone().add(dir.clone().multiply(i));
+                              for (Entity e : w.getNearbyEntities(pt, 1.8, 1.8, 1.8)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.damage(applyExecute(tg, 7.5 * dM, tier), p);
+                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 80, 1));
                                   tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 2));
+                                  return true;
                               }
-                          });
+                          }
                       }
                       case STORM -> {
-                          RayTraceResult tr = p.rayTraceBlocks(26);
+                          RayTraceResult tr = p.rayTraceBlocks(25);
                           Location tgt = (tr != null && tr.getHitPosition() != null) ? tr.getHitPosition().toLocation(w) : eye.clone().add(dir.clone().multiply(16));
-                          w.playSound(tgt, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 2.5f, 1.4f);
-                          pl.spawnTask(60 + (tier * 10), 3, step -> {
-                              w.strikeLightningEffect(tgt);
-                              BlissAspects.drawDenseRing(tgt, 4.0, Particle.ELECTRIC_SPARK, 48, 4);
-                              BlissAspects.spawnColoredDust(tgt, a.getPrimaryColor(), 1.6f, 30);
-                              w.spawnParticle(Particle.FLASH, tgt.clone().add(0, 1.0, 0), 2);
-                              for (Entity e : tgt.getWorld().getNearbyEntities(tgt, 5.5, 4.0, 5.5)) if (e instanceof LivingEntity tg && tg != p) {
-                                  tg.damage(applyExecute(tg, 4.0 * dM, tier), p);
-                              }
-                          });
+                          w.playSound(tgt, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 2.0f, 1.5f);
+                          w.strikeLightningEffect(tgt);
+                          BlissAspects.drawDustRing(tgt, 3.2, a.getPrimaryColor(), 36);
+                          for (Entity e : tgt.getWorld().getNearbyEntities(tgt, 4.5, 4.0, 4.5)) if (e instanceof LivingEntity tg && tg != p) {
+                              tg.damage(applyExecute(tg, 9.5 * dM, tier), p);
+                          }
                       }
                       case VOID -> {
-                          RayTraceResult tr = p.rayTraceBlocks(20);
-                          Location c = (tr != null && tr.getHitPosition() != null) ? tr.getHitPosition().toLocation(w) : eye.clone().add(dir.clone().multiply(12));
-                          w.playSound(c, Sound.BLOCK_BEACON_DEACTIVATE, 2.5f, 0.5f);
-                          pl.spawnTask(70 + (tier * 10), 2, step -> {
-                              double spin = (step * 0.2);
-                              BlissAspects.drawDenseRing(c.clone().add(0, Math.sin(spin) * 0.5, 0), 3.5, Particle.PORTAL, 48, 3);
-                              BlissAspects.spawnColoredDust(c, a.getPrimaryColor(), 1.8f, 25);
-                              for (Entity e : c.getWorld().getNearbyEntities(c, 7.5, 5.0, 7.5)) if (e instanceof LivingEntity tg && tg != p) {
-                                  tg.setVelocity(c.toVector().subtract(tg.getLocation().toVector()).normalize().multiply(0.55));
-                                  tg.damage(applyExecute(tg, 2.0 * dM, tier), p);
-                              }
-                          });
+                          RayTraceResult tr = p.rayTraceBlocks(18);
+                          Location c = (tr != null && tr.getHitPosition() != null) ? tr.getHitPosition().toLocation(w) : eye.clone().add(dir.clone().multiply(10));
+                          w.playSound(c, Sound.BLOCK_BEACON_DEACTIVATE, 2.0f, 0.6f);
+                          BlissAspects.drawDustRing(c, 3.0, a.getPrimaryColor(), 36);
+                          w.spawnParticle(Particle.PORTAL, c, 35, 0.8, 0.8, 0.8, 0.15);
+                          for (Entity e : c.getWorld().getNearbyEntities(c, 5.5, 4.0, 5.5)) if (e instanceof LivingEntity tg && tg != p) {
+                              tg.setVelocity(c.toVector().subtract(tg.getLocation().toVector()).normalize().multiply(0.6));
+                              tg.damage(applyExecute(tg, 8.5 * dM, tier), p);
+                          }
                       }
                       case PHANTOM -> {
-                          RayTraceResult ry = p.rayTraceEntities(16);
+                          RayTraceResult ry = p.rayTraceEntities(15);
                           if (ry != null && ry.getHitEntity() instanceof LivingEntity tg && tg != p) {
                               Location bh = tg.getLocation().subtract(tg.getLocation().getDirection().normalize().multiply(1.5));
                               bh.setDirection(tg.getLocation().subtract(bh).toVector());
                               p.teleport(bh);
-                              w.playSound(bh, Sound.ENTITY_PLAYER_ATTACK_CRIT, 2f, 0.7f);
-                              tg.damage(applyExecute(tg, 10.0 * dM, tier), p);
-                              tg.addPotionEffect(new PotionEffect(PotionEffectType.DARKNESS, 120, 1));
-                              BlissAspects.drawDenseDome(bh, 2.5, Particle.SQUID_INK, 4);
-                              w.spawnParticle(Particle.CRIT, bh.clone().add(0, 1.0, 0), 60, 0.5, 0.5, 0.5, 0.3);
+                              w.playSound(bh, Sound.ENTITY_PLAYER_ATTACK_CRIT, 1.8f, 0.7f);
+                              tg.damage(applyExecute(tg, 9.5 * dM, tier), p);
+                              tg.addPotionEffect(new PotionEffect(PotionEffectType.DARKNESS, 80, 1));
+                              BlissAspects.drawDustRing(bh, 2.2, a.getPrimaryColor(), 28);
                           } else {
-                              p.sendActionBar(Component.text("Aim at a target to Assassinate!", NamedTextColor.GRAY));
+                              p.sendActionBar(Component.text("Aim at a target to Shadow Step!", NamedTextColor.GRAY));
                               return false;
                           }
                       }
                       case KNIGHT -> {
-                          p.setVelocity(dir.clone().setY(0.2).multiply(2.5));
-                          w.playSound(eye, Sound.ITEM_ARMOR_EQUIP_NETHERITE, 2.5f, 0.7f);
-                          pl.spawnTask(50 + (tier * 5), 1, step -> {
-                              BlissAspects.drawDenseRing(p.getLocation().add(0, 0.8, 0), 1.6, Particle.CRIT, 24, 3);
-                              BlissAspects.spawnColoredDust(p.getLocation().add(0, 0.8, 0), a.getPrimaryColor(), 1.5f, 15);
-                              for (Entity e : p.getNearbyEntities(2.5, 2.5, 2.5)) if (e instanceof LivingEntity tg && tg != p) {
-                                  tg.damage(applyExecute(tg, 9.0 * dM, tier), p);
-                                  tg.setVelocity(p.getLocation().getDirection().multiply(1.8).setY(0.5));
-                                  w.playSound(tg.getLocation(), Sound.ITEM_SHIELD_BLOCK, 2.5f, 0.6f);
+                          p.setVelocity(dir.clone().setY(0.2).multiply(2.2));
+                          w.playSound(eye, Sound.ITEM_ARMOR_EQUIP_NETHERITE, 2.0f, 0.7f);
+                          pl.spawnTask(40, 2, step -> {
+                              BlissAspects.drawDenseRing(p.getLocation().add(0, 0.8, 0), 1.2, Particle.CRIT, 16, 1);
+                              for (Entity e : p.getNearbyEntities(2.0, 2.0, 2.0)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.damage(applyExecute(tg, 8.5 * dM, tier), p);
+                                  tg.setVelocity(p.getLocation().getDirection().multiply(1.5).setY(0.4));
+                                  w.playSound(tg.getLocation(), Sound.ITEM_SHIELD_BLOCK, 2.0f, 0.6f);
                               }
                           });
                       }
@@ -733,7 +691,7 @@ jobs:
                   return true;
               }
 
-              // MOVE 2: ORBITAL SHIELDS & SUSTAINED AURAS
+              // MOVE 2: PLANETARY ORBITAL SHIELDS (Shift + Right Click)
               private boolean castMove2(Player p, AspectType a, int tier, double cM) {
                   String k = "m2";
                   double baseCd = cd.getConfigCooldown(a, 2);
@@ -741,24 +699,24 @@ jobs:
                   cd.setCooldown(p, k, baseCd * cM);
 
                   World w = p.getWorld(); Location eye = p.getEyeLocation();
-                  int duration = 90 + (tier * 15);
+                  int duration = 60 + (tier * 10); // 3.0 to 5.5 seconds clean
 
                   w.playSound(eye, Sound.BLOCK_BEACON_ACTIVATE, 2.0f, 1.5f);
                   p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, duration, 2));
 
                   pl.spawnTask(duration, 2, step -> {
-                      double time = (step * 0.2);
-                      BlissAspects.drawOrbitalShield(p.getLocation(), 2.2, time, a.getPrimaryColor(), Particle.END_ROD);
-                      BlissAspects.drawDustRing(p.getLocation().add(0, 0.1, 0), 1.8, a.getSecondaryColor(), 24);
+                      double time = (step * 0.25);
+                      BlissAspects.drawOrbitals(p.getLocation(), 2.2, time, a.getPrimaryColor(), Particle.END_ROD);
+                      BlissAspects.drawDustRing(p.getLocation().add(0, 0.1, 0), 1.8, a.getSecondaryColor(), 28);
 
-                      for (Entity e : p.getNearbyEntities(3.0, 2.5, 3.0)) if (e instanceof Projectile proj) {
+                      for (Entity e : p.getNearbyEntities(2.8, 2.2, 2.8)) if (e instanceof Projectile proj) {
                           proj.setVelocity(proj.getVelocity().multiply(-0.8));
                       }
                   });
                   return true;
               }
 
-              // MOVE 3: FLOOR MAGICAL SEALS & CROWD CONTROL
+              // MOVE 3: FLOOR MAGICAL RUNE SEALS (Left Click with Gem)
               private boolean castMove3(Player p, AspectType a, int tier, double dM, double cM) {
                   String k = "m3";
                   double baseCd = cd.getConfigCooldown(a, 3);
@@ -766,13 +724,13 @@ jobs:
                   cd.setCooldown(p, k, baseCd * cM);
 
                   World w = p.getWorld(); Location loc = p.getLocation();
-                  w.playSound(loc, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 2.5f, 1.2f);
+                  w.playSound(loc, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 2.0f, 1.2f);
 
                   int dur = 70 + (tier * 10);
                   pl.spawnTask(dur, 2, step -> {
                       double rot = (step * 0.08);
-                      BlissAspects.drawMagicSeal(loc, 4.5, rot, a.getPrimaryColor(), Particle.FLASH);
-                      for (Entity e : loc.getWorld().getNearbyEntities(loc, 5.5, 3.5, 5.5)) if (e instanceof LivingEntity tg && tg != p) {
+                      BlissAspects.drawMagicSeal(loc, 4.5, rot, a.getPrimaryColor(), a.getSecondaryColor(), Particle.FLASH);
+                      for (Entity e : loc.getWorld().getNearbyEntities(loc, 5.5, 3.0, 5.5)) if (e instanceof LivingEntity tg && tg != p) {
                           tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 3));
                           tg.damage(applyExecute(tg, 1.6 * dM, tier), p);
                       }
@@ -780,7 +738,7 @@ jobs:
                   return true;
               }
 
-              // MOVE 4: CATACLYSMIC 3-STAGE RITUALS (Drop Key 'Q')
+              // MOVE 4: 3-STAGE CINEMATIC CATACLYSM RITUALS (Drop Key 'Q')
               private void castMove4(Player p, AspectType a, int tier, double dM, double cM) {
                   String k = "m4";
                   double baseCd = cd.getConfigCooldown(a, 4);
@@ -791,17 +749,17 @@ jobs:
                   int dur = 100 + (tier * 15);
 
                   p.sendMessage(Component.text("✦ CATACLYSM UNLEASHED: " + a.getM4() + " ✦", NamedTextColor.GOLD).decorate(TextDecoration.BOLD));
-                  w.playSound(c, Sound.ENTITY_WARDEN_SONIC_BOOM, 3.0f, 0.8f);
-                  w.playSound(c, Sound.UI_TOAST_CHALLENGE_COMPLETE, 2.5f, 0.6f);
+                  w.playSound(c, Sound.ENTITY_WARDEN_SONIC_BOOM, 2.5f, 0.8f);
+                  w.playSound(c, Sound.UI_TOAST_CHALLENGE_COMPLETE, 2.0f, 0.6f);
 
                   pl.spawnTask(dur, 2, step -> {
                       double rot = (step * 0.12);
                       // Stage 1: Floor Magic Seal
-                      BlissAspects.drawMagicSeal(c, 7.5, rot, a.getPrimaryColor(), Particle.FLASH);
-                      // Stage 2: Skyward Pillar of Energy
-                      BlissAspects.drawPillarOfLight(c, 24.0, a.getSecondaryColor(), Particle.END_ROD);
+                      BlissAspects.drawMagicSeal(c, 7.5, rot, a.getPrimaryColor(), a.getSecondaryColor(), Particle.FLASH);
+                      // Stage 2: Skyward Pillar of Divine Energy
+                      BlissAspects.drawSkyPillar(c, 24.0, a.getSecondaryColor(), Particle.END_ROD);
                       // Stage 3: Expanding Shockwave Pulse
-                      double r = 2.0 + ((step % 20) * 0.35);
+                      double r = 1.5 + ((step % 20) * 0.35);
                       BlissAspects.drawDustRing(c, r, a.getPrimaryColor(), 48);
 
                       for (Entity e : c.getWorld().getNearbyEntities(c, 8.5, 5.0, 8.5)) if (e instanceof LivingEntity tg && tg != p) {
@@ -885,7 +843,7 @@ jobs:
               }
           }""")
 
-          # Native 16x16 Pixel Art PNG Generator
+          # High-Quality 16x16 Faceted Gem PNG Generator
           def make_gem_png(color, accent):
               w, h = 16, 16
               mask = [
@@ -918,7 +876,7 @@ jobs:
                       elif val == 2:
                           raw.extend([color[0], color[1], color[2], 255])
                       elif val == 3:
-                          raw.extend([min(255, color[0]+70), min(255, color[1]+70), min(255, color[2]+70), 255])
+                          raw.extend([min(255, color[0]+65), min(255, color[1]+65), min(255, color[2]+65), 255])
 
               def chunk(tag, data):
                   return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xffffffff)
@@ -942,7 +900,15 @@ jobs:
               "knight":  ([240, 240, 255], [255, 200, 80])
           }
 
-          save("resourcepack/pack.mcmeta", r"""{"pack":{"pack_format":34,"description":"BlissAspects Custom Gems Texture Pack"}}""")
+          save("resourcepack/pack.mcmeta", r"""{
+            "pack": {
+              "pack_format": 34,
+              "supported_formats": [34, 46],
+              "description": "BlissAspects Custom Gems Texture Pack"
+            }
+          }""")
+
+          # 1.21.0 - 1.21.1 Legacy Model Overrides
           save("resourcepack/assets/minecraft/models/item/nether_star.json", r"""{
             "parent": "minecraft:item/generated",
             "textures": { "layer0": "minecraft:item/nether_star" },
@@ -958,6 +924,27 @@ jobs:
               { "predicate": { "custom_model_data": 1009 }, "model": "item/custom/phantom_gem" },
               { "predicate": { "custom_model_data": 1010 }, "model": "item/custom/knight_gem" }
             ]
+          }""")
+
+          # 1.21.2+ Modern Item Definition System
+          save("resourcepack/assets/minecraft/items/nether_star.json", r"""{
+            "model": {
+              "type": "minecraft:range_dispatch",
+              "property": "minecraft:custom_model_data",
+              "fallback": { "type": "minecraft:model", "model": "minecraft:item/nether_star" },
+              "entries": [
+                { "threshold": 1001, "model": { "type": "minecraft:model", "model": "item/custom/terra_gem" } },
+                { "threshold": 1002, "model": { "type": "minecraft:model", "model": "item/custom/frost_gem" } },
+                { "threshold": 1003, "model": { "type": "minecraft:model", "model": "item/custom/reaper_gem" } },
+                { "threshold": 1004, "model": { "type": "minecraft:model", "model": "item/custom/rage_gem" } },
+                { "threshold": 1005, "model": { "type": "minecraft:model", "model": "item/custom/aegis_gem" } },
+                { "threshold": 1006, "model": { "type": "minecraft:model", "model": "item/custom/bloom_gem" } },
+                { "threshold": 1007, "model": { "type": "minecraft:model", "model": "item/custom/storm_gem" } },
+                { "threshold": 1008, "model": { "type": "minecraft:model", "model": "item/custom/void_gem" } },
+                { "threshold": 1009, "model": { "type": "minecraft:model", "model": "item/custom/phantom_gem" } },
+                { "threshold": 1010, "model": { "type": "minecraft:model", "model": "item/custom/knight_gem" } }
+              ]
+            }
           }""")
 
           for gem, (col, acc) in gem_colors.items():
@@ -983,7 +970,7 @@ jobs:
       - name: Upload Plugin Jar
         uses: actions/upload-artifact@v4
         with:
-          name: BlissAspects-10.1-Plugin
+          name: BlissAspects-12.0-Plugin
           path: target/BlissAspects.jar
 
       - name: Upload Texture Pack with Native PNGs
