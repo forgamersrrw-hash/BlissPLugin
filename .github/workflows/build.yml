@@ -30,7 +30,7 @@ jobs:
               <modelVersion>4.0.0</modelVersion>
               <groupId>com.bliss</groupId>
               <artifactId>BlissAspects</artifactId>
-              <version>3.0.0</version>
+              <version>5.0.0</version>
               <packaging>jar</packaging>
               <properties><java.version>21</java.version><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding></properties>
               <repositories>
@@ -44,13 +44,66 @@ jobs:
           </project>""")
 
           save("src/main/resources/plugin.yml", r"""name: BlissAspects
-          version: 3.0.0
+          version: 5.0.0
           main: com.bliss.aspects.BlissAspects
           api-version: '1.21'
           commands:
             aspect:
               permission: bliss.use
               description: Bliss Aspect gem command""")
+
+          save("src/main/resources/config.yml", r"""# BlissAspects Custom Cooldowns (in seconds)
+          cooldowns:
+            TERRA:
+              move1: 8.0
+              move2: 14.0
+              move3: 10.0
+              move4: 28.0
+            FROST:
+              move1: 7.0
+              move2: 8.0
+              move3: 11.0
+              move4: 26.0
+            REAPER:
+              move1: 7.0
+              move2: 12.0
+              move3: 10.0
+              move4: 30.0
+            RAGE:
+              move1: 6.0
+              move2: 12.0
+              move3: 8.0
+              move4: 32.0
+            AEGIS:
+              move1: 9.0
+              move2: 15.0
+              move3: 8.0
+              move4: 28.0
+            BLOOM:
+              move1: 7.0
+              move2: 13.0
+              move3: 9.0
+              move4: 26.0
+            STORM:
+              move1: 8.0
+              move2: 8.0
+              move3: 10.0
+              move4: 25.0
+            VOID:
+              move1: 10.0
+              move2: 9.0
+              move3: 8.0
+              move4: 30.0
+            PHANTOM:
+              move1: 9.0
+              move2: 16.0
+              move3: 7.0
+              move4: 28.0
+            KNIGHT:
+              move1: 7.0
+              move2: 10.0
+              move3: 8.0
+              move4: 26.0""")
 
           save("src/main/java/com/bliss/aspects/BlissAspects.java", r"""package com.bliss.aspects;
 
@@ -61,8 +114,9 @@ jobs:
           import org.bukkit.enchantments.Enchantment;
           import org.bukkit.entity.*;
           import org.bukkit.event.*;
+          import org.bukkit.event.block.Action;
           import org.bukkit.event.entity.*;
-          import org.bukkit.event.player.PlayerInteractEvent;
+          import org.bukkit.event.player.*;
           import org.bukkit.inventory.*;
           import org.bukkit.inventory.meta.ItemMeta;
           import org.bukkit.persistence.*;
@@ -72,6 +126,7 @@ jobs:
           import org.bukkit.util.RayTraceResult;
           import org.bukkit.util.Vector;
           import java.util.*;
+          import java.util.function.Consumer;
 
           public final class BlissAspects extends JavaPlugin {
               private CooldownManager cd;
@@ -79,14 +134,15 @@ jobs:
 
               @Override
               public void onEnable() {
-                  this.cd = new CooldownManager();
+                  saveDefaultConfig();
+                  this.cd = new CooldownManager(this);
                   this.gm = new GemManager(this);
                   getServer().getPluginManager().registerEvents(new AspectListener(this, cd, gm), this);
-                  AspectCommand cmd = new AspectCommand(cd, gm);
+                  AspectCommand cmd = new AspectCommand(this, cd, gm);
                   Objects.requireNonNull(getCommand("aspect")).setExecutor(cmd);
                   Objects.requireNonNull(getCommand("aspect")).setTabCompleter(cmd);
 
-                  // Continuous Bliss Passive & Ascended Aura Loop
+                  // Continuous Bliss Ambient FX & Halo Loop
                   Bukkit.getScheduler().runTaskTimer(this, () -> {
                       for (Player p : Bukkit.getOnlinePlayers()) {
                           ItemStack gem = gm.getWieldedGem(p);
@@ -94,23 +150,19 @@ jobs:
                           AspectType t = gm.getGemAspect(gem);
                           if (t == null) continue;
 
-                          int tier = Math.min(5, gm.getGemKills(gem) / 10);
+                          int tier = Math.min(5, gm.getGemKills(gem));
                           Location loc = p.getLocation().add(0, 0.7, 0);
 
-                          // Tier 5 Ascended Halo Particles
                           if (tier == 5) {
-                              p.getWorld().spawnParticle(Particle.END_ROD, loc.clone().add(0, 1.2, 0), 2, 0.15, 0.05, 0.15, 0.01);
+                              drawRing(loc.clone().add(0, 1.3, 0), 0.45, Particle.END_ROD, 8);
                           }
 
                           switch (t) {
                               case STORM -> {
-                                  p.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, loc, tier >= 3 ? 5 : 2, 0.35, 0.45, 0.35, 0.05);
+                                  p.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, loc, tier >= 3 ? 6 : 3, 0.35, 0.45, 0.35, 0.05);
                                   p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 40, tier >= 4 ? 1 : 0, false, false, false));
                               }
-                              case TERRA -> {
-                                  p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 40, tier >= 4 ? 1 : 0, false, false, false));
-                                  if (tier == 5) p.getWorld().spawnParticle(Particle.BLOCK, loc.clone().subtract(0, 0.6, 0), 2, 0.2, 0.1, 0.2, Material.STONE.createBlockData());
-                              }
+                              case TERRA -> p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 40, tier >= 4 ? 1 : 0, false, false, false));
                               case BLOOM -> {
                                   p.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, loc, tier >= 3 ? 5 : 2, 0.3, 0.3, 0.3);
                                   p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 40, tier >= 5 ? 1 : 0, false, false, false));
@@ -128,7 +180,7 @@ jobs:
                               case PHANTOM -> {
                                   if (p.isSneaking()) {
                                       p.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_FALLING, 40, 0, false, false, false));
-                                      p.getWorld().spawnParticle(Particle.SMOKE, loc, 2, 0.2, 0.3, 0.2, 0.01);
+                                      p.getWorld().spawnParticle(Particle.SMOKE, loc, 3, 0.2, 0.3, 0.2, 0.01);
                                   }
                               }
                               default -> {}
@@ -136,32 +188,82 @@ jobs:
                       }
                   }, 0L, 20L);
               }
+
+              // Geometric Particle Helpers
+              public static void drawRing(Location center, double radius, Particle p, int points) {
+                  for (int i = 0; i < points; i++) {
+                      double a = 2 * Math.PI * i / points;
+                      center.getWorld().spawnParticle(p, center.clone().add(Math.cos(a) * radius, 0, Math.sin(a) * radius), 1, 0, 0, 0, 0);
+                  }
+              }
+
+              public static void drawSphere(Location center, double radius, Particle p) {
+                  for (double u = 0; u < Math.PI * 2; u += Math.PI / 3) {
+                      for (double v = 0; v < Math.PI; v += Math.PI / 3) {
+                          double x = radius * Math.sin(v) * Math.cos(u);
+                          double y = radius * Math.cos(v);
+                          double z = radius * Math.sin(v) * Math.sin(u);
+                          center.getWorld().spawnParticle(p, center.clone().add(x, y + 1.0, z), 1, 0, 0, 0, 0);
+                      }
+                  }
+              }
+
+              public static void drawHelix(Location loc, double radius, double height, Particle p) {
+                  for (double y = 0; y < height; y += 0.3) {
+                      double a = y * 3;
+                      loc.getWorld().spawnParticle(p, loc.clone().add(Math.cos(a) * radius, y, Math.sin(a) * radius), 1, 0, 0, 0, 0);
+                  }
+              }
+
+              public void spawnTask(int durationTicks, int periodTicks, Consumer<Integer> tickAction) {
+                  new BukkitRunnable() {
+                      int elapsed = 0;
+                      @Override
+                      public void run() {
+                          tickAction.accept(elapsed);
+                          elapsed += periodTicks;
+                          if (elapsed >= durationTicks) cancel();
+                      }
+                  }.runTaskTimer(this, 0L, periodTicks);
+              }
           }
 
           enum AspectType {
-              TERRA("Terra", NamedTextColor.GOLD, "Earthshaker Slam", "Bastion Fortress", "Resistance I & Knockback Poise"),
-              FROST("Frost", TextColor.color(0x70D6FF), "Glacial Blizzard", "Frost Slide", "Freeze Immunity & Frostbite Chills"),
-              REAPER("Reaper", NamedTextColor.DARK_PURPLE, "Soul Siphon Scythe", "Wraith Phase", "Soul Trails & Bonus Night Vision"),
-              RAGE("Rage", NamedTextColor.RED, "Berserker Cleave", "War Roar", "Strength I when under 50% Health"),
-              AEGIS("Aegis", TextColor.color(0xFFD166), "Radiant Judgement", "Divine Sanctuary", "Golden Absorption & Holy Aura"),
-              BLOOM("Bloom", NamedTextColor.GREEN, "Thorn Entanglement", "Floral Blossom", "Continuous Natural Regeneration"),
-              STORM("Storm", NamedTextColor.AQUA, "Tempest Bolt", "Lightning Blink", "Electric Speed I & Spark Shield"),
-              VOID("Void", TextColor.color(0x9D4EDD), "Event Horizon Vortex", "Rift Step", "Total Immunity to Fall Damage"),
-              PHANTOM("Phantom", NamedTextColor.DARK_GRAY, "Shadow Ambush", "Spectral Phase", "Slow Falling when Crouched"),
-              KNIGHT("Knight", NamedTextColor.WHITE, "Shield Bash Rush", "Iron Counter-Parry", "+4 Armor Defense & Poise");
+              TERRA("Terra", NamedTextColor.GOLD, "Seismic Fissure", "Titan Fortress", "Gravity Quake", "Tectonic Cataclysm", "Knockback II & Protection III", "LEGENDARY"),
+              FROST("Frost", TextColor.color(0x70D6FF), "Blizzard Helix", "Glacial Armor", "Ice Age Ring", "Absolute Zero Storm", "Frost Walker II & Freezing Edge", "RARE"),
+              REAPER("Reaper", NamedTextColor.DARK_PURPLE, "Soul Crescent", "Wraith Trance", "Death's Leash", "Harvesting Eclipse", "Sweeping Edge III & Soul Siphon", "MYTHIC"),
+              RAGE("Rage", NamedTextColor.RED, "Infernal Wave", "Berserker Rampage", "Blood Pull", "Hellfire Domain", "Fire Aspect II & 100% AUTOCRIT", "LEGENDARY"),
+              AEGIS("Aegis", TextColor.color(0xFFD166), "Radiant Spear", "Divine Sanctuary Dome", "Repulsion Wave", "Judgement Cataclysm", "Protection IV & Thorns III", "EPIC"),
+              BLOOM("Bloom", NamedTextColor.GREEN, "Bramble Lance", "Verdant Cocoon", "Floral Rooting", "Eden's Overgrowth", "Mending & Natural Regrowth", "RARE"),
+              STORM("Storm", NamedTextColor.AQUA, "Tempest Discharge", "Supercharged State", "Static Pull", "Overdrive Thunderstorm", "Channeling & Lightning Strike", "MYTHIC"),
+              VOID("Void", TextColor.color(0x9D4EDD), "Singularity Ray", "Dimensional Rift", "Zero-Gravity Well", "Void Cataclysm", "Feather Falling IV & Void Repel", "TRANSCENDENT"),
+              PHANTOM("Phantom", NamedTextColor.DARK_GRAY, "Shadow Assassination", "Cloaked Stealth", "Smoke Decoy", "Midnight Requiem", "Swift Sneak III & True Invisibility", "EPIC"),
+              KNIGHT("Knight", NamedTextColor.WHITE, "Jousting Charge", "Iron Guard State", "War Tremor", "Colossus Juggernaut", "+6 Armor & Unyielding Poise", "RARE");
 
-              private final String d, pri, sec, p;
+              private final String d, m1, m2, m3, m4, p, rarity;
               private final TextColor c;
-              AspectType(String d, TextColor c, String pri, String sec, String p) { this.d = d; this.c = c; this.pri = pri; this.sec = sec; this.p = p; }
+              AspectType(String d, TextColor c, String m1, String m2, String m3, String m4, String p, String rarity) {
+                  this.d = d; this.c = c; this.m1 = m1; this.m2 = m2; this.m3 = m3; this.m4 = m4; this.p = p; this.rarity = rarity;
+              }
               public String getDisplayName() { return d; }
-              public String getPri() { return pri; }
-              public String getSec() { return sec; }
+              public String getM1() { return m1; }
+              public String getM2() { return m2; }
+              public String getM3() { return m3; }
+              public String getM4() { return m4; }
               public String getPassiveDesc() { return p; }
+              public String getRarity() { return rarity; }
               public Component getFormattedName() { return Component.text(d, c); }
           }
 
           class CooldownManager {
+              private final BlissAspects pl;
               private final Map<UUID, Map<String, Long>> cd = new HashMap<>();
+
+              public CooldownManager(BlissAspects pl) { this.pl = pl; }
+
+              public double getConfigCooldown(AspectType a, int move) {
+                  return pl.getConfig().getDouble("cooldowns." + a.name() + ".move" + move, 10.0);
+              }
               public boolean isOnCooldown(Player p, String k) {
                   var m = cd.get(p.getUniqueId());
                   return m != null && m.containsKey(k) && System.currentTimeMillis() < m.get(k);
@@ -181,10 +283,11 @@ jobs:
           }
 
           class GemManager {
-              private final NamespacedKey ak, kk;
+              private final NamespacedKey ak, kk, uk;
               public GemManager(JavaPlugin pl) {
                   this.ak = new NamespacedKey(pl, "b_asp");
                   this.kk = new NamespacedKey(pl, "b_kls");
+                  this.uk = new NamespacedKey(pl, "b_ukills");
               }
               public ItemStack createGem(AspectType a, int kills) {
                   ItemStack it = new ItemStack(Material.NETHER_STAR);
@@ -193,43 +296,31 @@ jobs:
               }
               public void updateMeta(ItemStack it, AspectType a, int kills) {
                   ItemMeta m = it.getItemMeta();
-                  int tier = Math.min(5, kills / 10);
-                  int progress = Math.min(10, (kills % 10));
-                  String bar = "█".repeat(progress) + "░".repeat(10 - progress);
-
-                  String rank = switch(tier) {
-                      case 1 -> "Awakened";
-                      case 2 -> "Empowered";
-                      case 3 -> "Mastered";
-                      case 4 -> "Mythic";
-                      case 5 -> "ASCENDED";
-                      default -> "Dormant";
-                  };
+                  int tier = Math.min(5, kills);
+                  String stars = "★".repeat(Math.max(1, tier)) + "☆".repeat(Math.max(0, 5 - tier));
 
                   m.displayName(Component.text("❖ ", NamedTextColor.WHITE)
                       .append(a.getFormattedName().decorate(TextDecoration.BOLD))
-                      .append(Component.text(" Soul Gem ❖", NamedTextColor.WHITE))
+                      .append(Component.text(" Gem ❖ ", NamedTextColor.WHITE))
+                      .append(Component.text("[" + stars + "]", NamedTextColor.GOLD))
                       .decoration(TextDecoration.ITALIC, false));
 
                   List<Component> lore = new ArrayList<>();
-                  lore.add(Component.text("Rank: ", NamedTextColor.GOLD)
-                      .append(Component.text("★".repeat(Math.max(1, tier)) + "☆".repeat(Math.max(0, 5 - tier)) + " (" + rank + ")", NamedTextColor.YELLOW))
-                      .decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("Souls: [" + bar + "] " + kills + "/50", NamedTextColor.AQUA).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("Rarity: ", NamedTextColor.GRAY).append(Component.text(a.getRarity(), NamedTextColor.LIGHT_PURPLE).decorate(TextDecoration.BOLD)).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("Unique Souls: " + kills + " / 5 Players", NamedTextColor.AQUA).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("Passive: ", NamedTextColor.BLUE).append(Component.text(a.getPassiveDesc(), NamedTextColor.WHITE)).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("▶ Right-Click: ", NamedTextColor.GOLD).append(Component.text(a.getPri(), NamedTextColor.YELLOW)).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("   Offensive strike • Heavy AoE impact", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("▶ Shift + Right-Click: ", NamedTextColor.AQUA).append(Component.text(a.getSec(), NamedTextColor.WHITE)).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("   Evasive utility • Mobility / Defense", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("Passive Enchantment:", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text(" ✦ " + a.getPassiveDesc(), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.empty());
+                  lore.add(Component.text("Sustained Abilities (Duration scales with Stars):", NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("▶ Right-Click: ", NamedTextColor.GOLD).append(Component.text(a.getM1(), NamedTextColor.WHITE)).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("▶ Shift + Right-Click: ", NamedTextColor.AQUA).append(Component.text(a.getM2(), NamedTextColor.WHITE)).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("▶ Left-Click: ", NamedTextColor.GREEN).append(Component.text(a.getM3(), NamedTextColor.WHITE)).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("▶ Drop Key (Q): ", NamedTextColor.RED).append(Component.text(a.getM4() + " [Ultimate]", NamedTextColor.YELLOW).decorate(TextDecoration.BOLD)).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("Tier " + tier + " Buffs: ", NamedTextColor.LIGHT_PURPLE)
-                      .append(Component.text("+" + (tier * 10) + "% Damage ", NamedTextColor.RED))
-                      .append(Component.text("| -" + (tier * 6) + "% Cooldowns", NamedTextColor.GREEN))
-                      .decoration(TextDecoration.ITALIC, false));
-                  if (tier >= 3) lore.add(Component.text("✦ Evolution Perk: Enhanced Sub-Procs Unlocked!", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
-                  if (tier >= 4) lore.add(Component.text("✦ Mythic Perk: +30% Execute damage on low-HP foes", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
-                  if (tier == 5) lore.add(Component.text("✦ Ascended Trait: Radiant Halo & Max Elemental Power", NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("Tier Stats: +" + (tier * 10) + "% Damage | -" + (tier * 6) + "% Cooldowns", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+                  if (tier >= 4) lore.add(Component.text("✦ Execute: +30% True Damage on targets below 35% HP", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
+                  if (tier == 5) lore.add(Component.text("✦ Ascended: Radiant Halo & Max Duration", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("Hold in Main Hand or Offhand to wield.", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, true));
 
                   m.lore(lore);
@@ -237,6 +328,9 @@ jobs:
                   m.addItemFlags(ItemFlag.HIDE_ENCHANTS);
                   m.getPersistentDataContainer().set(ak, PersistentDataType.STRING, a.name());
                   m.getPersistentDataContainer().set(kk, PersistentDataType.INTEGER, kills);
+                  if (!m.getPersistentDataContainer().has(uk, PersistentDataType.STRING)) {
+                      m.getPersistentDataContainer().set(uk, PersistentDataType.STRING, "");
+                  }
                   it.setItemMeta(m);
               }
               public boolean isGem(ItemStack it) {
@@ -248,6 +342,18 @@ jobs:
               public int getGemKills(ItemStack it) {
                   return isGem(it) ? it.getItemMeta().getPersistentDataContainer().getOrDefault(kk, PersistentDataType.INTEGER, 0) : 0;
               }
+              public boolean addUniquePlayerKill(ItemStack it, UUID victimUUID) {
+                  if (!isGem(it)) return false;
+                  ItemMeta m = it.getItemMeta();
+                  String list = m.getPersistentDataContainer().getOrDefault(uk, PersistentDataType.STRING, "");
+                  String vStr = victimUUID.toString();
+                  if (list.contains(vStr)) return false;
+
+                  String newList = list.isEmpty() ? vStr : list + "," + vStr;
+                  m.getPersistentDataContainer().set(uk, PersistentDataType.STRING, newList);
+                  it.setItemMeta(m);
+                  return true;
+              }
               public ItemStack getWieldedGem(Player p) {
                   ItemStack main = p.getInventory().getItemInMainHand();
                   if (isGem(main)) return main;
@@ -257,396 +363,416 @@ jobs:
           }
 
           class AspectListener implements Listener {
-              private final JavaPlugin pl;
+              private final BlissAspects pl;
               private final CooldownManager cd;
               private final GemManager gm;
               private final Set<UUID> parry = new HashSet<>(), ghost = new HashSet<>();
 
-              public AspectListener(JavaPlugin pl, CooldownManager cd, GemManager gm) {
+              public AspectListener(BlissAspects pl, CooldownManager cd, GemManager gm) {
                   this.pl = pl; this.cd = cd; this.gm = gm;
+              }
+
+              private double applyExecute(LivingEntity t, double dmg, int tier) {
+                  if (tier >= 4 && t != null && (t.getHealth() / t.getMaxHealth()) <= 0.35) {
+                      return dmg * 1.30;
+                  }
+                  return dmg;
+              }
+
+              @EventHandler
+              public void onHit(EntityDamageByEntityEvent e) {
+                  if (e.getDamager() instanceof Player p) {
+                      ItemStack gem = gm.getWieldedGem(p);
+                      if (gem != null && gm.getGemAspect(gem) == AspectType.RAGE) {
+                          e.setDamage(e.getDamage() * 1.5);
+                          p.getWorld().spawnParticle(Particle.CRIT, e.getEntity().getLocation().add(0, 1.2, 0), 30, 0.4, 0.4, 0.4, 0.2);
+                          p.getWorld().playSound(p.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1.6f, 0.8f);
+                      }
+                  }
+                  if (e.getEntity() instanceof Player v && ghost.contains(v.getUniqueId())) {
+                      e.setCancelled(true);
+                      return;
+                  }
+                  if (e.getEntity() instanceof Player def && parry.contains(def.getUniqueId())) {
+                      e.setCancelled(true);
+                      parry.remove(def.getUniqueId());
+                      def.getWorld().playSound(def.getLocation(), Sound.BLOCK_ANVIL_PLACE, 1.8f, 1.8f);
+                      def.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 120, 1));
+                      if (e.getDamager() instanceof LivingEntity atk) atk.damage(8.0, def);
+                  }
               }
 
               @EventHandler
               public void onInteract(PlayerInteractEvent e) {
                   Player p = e.getPlayer();
                   ItemStack gem = gm.getWieldedGem(p);
-                  if (gem == null || !e.getAction().name().contains("RIGHT")) return;
+                  if (gem == null) return;
 
                   AspectType a = gm.getGemAspect(gem);
                   int kills = gm.getGemKills(gem);
-                  int tier = Math.min(5, kills / 10);
+                  int tier = Math.min(5, kills);
                   double dMod = 1.0 + (tier * 0.10);
                   double cMod = Math.max(0.70, 1.0 - (tier * 0.06));
 
-                  if (p.isSneaking()) castSec(p, a, tier, cMod);
-                  else castPri(p, a, tier, dMod, cMod);
-                  e.setCancelled(true);
+                  Action act = e.getAction();
+                  if (act == Action.RIGHT_CLICK_AIR || act == Action.RIGHT_CLICK_BLOCK) {
+                      if (p.isSneaking()) castMove2(p, a, tier, cMod);
+                      else castMove1(p, a, tier, dMod, cMod);
+                      e.setCancelled(true);
+                  } else if (act == Action.LEFT_CLICK_AIR || act == Action.LEFT_CLICK_BLOCK) {
+                      if (p.getInventory().getItemInMainHand().equals(gem)) {
+                          castMove3(p, a, tier, dMod, cMod);
+                          e.setCancelled(true);
+                      }
+                  }
               }
 
-              private void castPri(Player p, AspectType a, int tier, double dM, double cM) {
-                  String k = "pri";
-                  World w = p.getWorld();
-                  Location eye = p.getEyeLocation();
+              @EventHandler
+              public void onDrop(PlayerDropItemEvent e) {
+                  Player p = e.getPlayer();
+                  ItemStack it = e.getItemDrop().getItemStack();
+                  if (gm.isGem(it)) {
+                      e.setCancelled(true);
+                      AspectType a = gm.getGemAspect(it);
+                      int kills = gm.getGemKills(it);
+                      int tier = Math.min(5, kills);
+                      double dMod = 1.0 + (tier * 0.10);
+                      double cMod = Math.max(0.70, 1.0 - (tier * 0.06));
+                      castMove4(p, a, tier, dMod, cMod);
+                  }
+              }
+
+              // MOVE 1: PRIMARY BEAMS & RUPTURES
+              private void castMove1(Player p, AspectType a, int tier, double dM, double cM) {
+                  String k = "m1";
+                  double baseCd = cd.getConfigCooldown(a, 1);
+                  if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getM1(), k); return; }
+                  cd.setCooldown(p, k, baseCd * cM);
+
+                  World w = p.getWorld(); Location eye = p.getEyeLocation();
                   Vector dir = eye.getDirection().normalize();
 
                   switch (a) {
                       case TERRA -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getPri(), k); return; }
-                          cd.setCooldown(p, k, 10 * cM);
-                          p.setVelocity(dir.clone().setY(0.75).multiply(1.2));
+                          p.setVelocity(dir.clone().setY(0.75).multiply(1.3));
                           w.playSound(eye, Sound.ENTITY_IRON_GOLEM_ATTACK, 2f, 0.5f);
-                          w.spawnParticle(Particle.BLOCK, eye, 60, 0.5, 0.5, 0.5, Material.DIRT.createBlockData());
-
                           new BukkitRunnable() {
                               int t = 0;
                               public void run() {
                                   if (p.isOnGround() || ++t > 30) {
                                       Location slam = p.getLocation();
-                                      w.spawnParticle(Particle.BLOCK, slam, 350, 4.0, 0.6, 4.0, Material.STONE.createBlockData());
                                       w.playSound(slam, Sound.ENTITY_GENERIC_EXPLODE, 2f, 0.6f);
-                                      w.playSound(slam, Sound.BLOCK_ANVIL_LAND, 1.5f, 0.5f);
-
-                                      double radius = tier >= 2 ? 8.5 : 6.5;
-                                      for (Entity e : p.getNearbyEntities(radius, 3.5, radius)) if (e instanceof LivingEntity t && t != p) {
-                                          double dmg = 9.0 * dM;
-                                          if (tier >= 4 && (t.getHealth() / t.getMaxHealth()) <= 0.35) dmg *= 1.30;
-                                          t.damage(dmg, p);
-                                          t.setVelocity(new Vector(0, tier >= 3 ? 1.1 : 0.85, 0));
-                                      }
-
-                                      // Tier 3+ Secondary Tremor Ring
-                                      if (tier >= 3) {
-                                          w.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, slam.add(0, 0.2, 0), 40, 2.5, 0.1, 2.5, 0.05);
-                                      }
+                                      pl.spawnTask(80 + (tier * 10), 4, step -> {
+                                          double r = 1.5 + (step * 0.1);
+                                          BlissAspects.drawRing(slam, r, Particle.BLOCK, 20);
+                                          for (Entity e : slam.getWorld().getNearbyEntities(slam, r, 2.5, r)) if (e instanceof LivingEntity tg && tg != p) {
+                                              tg.damage(applyExecute(tg, 2.0 * dM, tier), p);
+                                              tg.setVelocity(new Vector(0, 0.35, 0));
+                                          }
+                                      });
                                       cancel();
                                   }
                               }
                           }.runTaskTimer(pl, 5L, 1L);
                       }
                       case FROST -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getPri(), k); return; }
-                          cd.setCooldown(p, k, 8 * cM);
                           w.playSound(eye, Sound.BLOCK_GLASS_BREAK, 2f, 0.5f);
-                          w.playSound(eye, Sound.ENTITY_PLAYER_HURT_FREEZE, 1.8f, 1.2f);
-
-                          int range = tier >= 2 ? 14 : 10;
-                          for (int i = 1; i <= range; i++) {
-                              Location step = eye.clone().add(dir.clone().multiply(i));
-                              w.spawnParticle(Particle.SNOWFLAKE, step, 25, 0.45, 0.45, 0.45, 0.05);
-                              for (Entity e : w.getNearbyEntities(step, 1.6, 1.6, 1.6)) if (e instanceof LivingEntity t && t != p) {
-                                  double dmg = 7.0 * dM;
-                                  if (tier >= 3 && t.getFreezeTicks() > 100) dmg += 3.5; // Shatter bonus
-                                  if (tier >= 4 && (t.getHealth() / t.getMaxHealth()) <= 0.35) dmg *= 1.30;
-                                  t.damage(dmg, p);
-                                  t.setFreezeTicks(350);
-                                  t.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 120, tier >= 3 ? 3 : 2));
+                          pl.spawnTask(60 + (tier * 10), 3, step -> {
+                              Location beamLoc = eye.clone().add(dir.clone().multiply(step * 0.4));
+                              BlissAspects.drawRing(beamLoc, 1.2, Particle.SNOWFLAKE, 12);
+                              w.spawnParticle(Particle.END_ROD, beamLoc, 2, 0.1, 0.1, 0.1, 0.02);
+                              for (Entity e : beamLoc.getWorld().getNearbyEntities(beamLoc, 2.0, 2.0, 2.0)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.damage(applyExecute(tg, 2.2 * dM, tier), p);
+                                  tg.setFreezeTicks(250);
+                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 2));
                               }
-                          }
+                          });
                       }
                       case REAPER -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getPri(), k); return; }
-                          cd.setCooldown(p, k, 7 * cM);
-                          w.playSound(eye, Sound.ENTITY_WITHER_SHOOT, 1.6f, 1.6f);
-                          w.playSound(eye, Sound.ENTITY_PHANTOM_BITE, 1.5f, 0.8f);
-
-                          double st = 0;
-                          int range = tier >= 2 ? 10 : 7;
-                          for (int i = 1; i <= range; i++) {
-                              Location step = eye.clone().add(dir.clone().multiply(i));
-                              w.spawnParticle(Particle.SOUL_FIRE_FLAME, step, 20, 0.35, 0.35, 0.35, 0.02);
-                              w.spawnParticle(Particle.SCULK_SOUL, step, 3, 0.2, 0.2, 0.2, 0.01);
-                              for (Entity e : w.getNearbyEntities(step, 1.6, 1.6, 1.6)) if (e instanceof LivingEntity t && t != p) {
-                                  double dmg = 8.0 * dM;
-                                  if (tier >= 4 && (t.getHealth() / t.getMaxHealth()) <= 0.35) dmg *= 1.30;
-                                  t.damage(dmg, p);
-                                  t.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 100, 1));
-                                  st += (tier >= 3 ? 3.5 : 2.5);
+                          w.playSound(eye, Sound.ENTITY_WITHER_SHOOT, 1.8f, 1.4f);
+                          pl.spawnTask(70 + (tier * 10), 3, step -> {
+                              Location arcLoc = eye.clone().add(dir.clone().multiply(step * 0.35));
+                              BlissAspects.drawRing(arcLoc, 1.5, Particle.SOUL_FIRE_FLAME, 14);
+                              w.spawnParticle(Particle.SCULK_SOUL, arcLoc, 2, 0.1, 0.1, 0.1, 0.01);
+                              double stolen = 0;
+                              for (Entity e : arcLoc.getWorld().getNearbyEntities(arcLoc, 2.2, 2.2, 2.2)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.damage(applyExecute(tg, 2.4 * dM, tier), p);
+                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 80, 1));
+                                  stolen += 1.5;
                               }
-                          }
-                          if (st > 0) {
-                              p.setHealth(Math.min(p.getMaxHealth(), p.getHealth() + st));
-                              w.spawnParticle(Particle.HEART, eye.add(0, 0.5, 0), 10, 0.4, 0.4, 0.4);
-                              if (tier >= 3) p.setFoodLevel(Math.min(20, p.getFoodLevel() + 2));
-                          }
+                              if (stolen > 0) p.setHealth(Math.min(p.getMaxHealth(), p.getHealth() + stolen));
+                          });
                       }
                       case RAGE -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getPri(), k); return; }
-                          cd.setCooldown(p, k, 6 * cM);
                           if (p.getHealth() > 2.0) p.setHealth(p.getHealth() - 2.0);
-
-                          w.playSound(eye, Sound.ENTITY_RAVAGER_ATTACK, 2f, 0.85f);
-                          w.playSound(eye, Sound.ENTITY_BLAZE_SHOOT, 1.8f, 0.8f);
-                          w.spawnParticle(Particle.SWEEP_ATTACK, eye.add(dir.multiply(1.5)), 12, 0.6, 0.6, 0.6);
-                          w.spawnParticle(Particle.LAVA, eye, 40, 1.5, 0.6, 1.5, 0.1);
-
-                          double missingRatio = 1.0 - (p.getHealth() / p.getMaxHealth());
-                          double dmg = (8.0 + (missingRatio * 12.0)) * dM;
-                          if (tier >= 4 && missingRatio >= 0.5) dmg *= 1.30;
-
-                          double rad = tier >= 2 ? 6.5 : 4.5;
-                          for (Entity e : p.getNearbyEntities(rad, 2.5, rad)) if (e instanceof LivingEntity t && t != p) {
-                              t.damage(dmg, p);
-                              t.setFireTicks(80);
-                          }
+                          w.playSound(eye, Sound.ENTITY_RAVAGER_ATTACK, 2f, 0.8f);
+                          pl.spawnTask(80 + (tier * 10), 4, step -> {
+                              Location wave = eye.clone().add(dir.clone().multiply(step * 0.35));
+                              BlissAspects.drawRing(wave, 1.8, Particle.LAVA, 16);
+                              w.spawnParticle(Particle.FLAME, wave, 15, 0.4, 0.4, 0.4, 0.05);
+                              for (Entity e : wave.getWorld().getNearbyEntities(wave, 2.5, 2.0, 2.5)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.damage(applyExecute(tg, 3.2 * dM, tier), p);
+                                  tg.setFireTicks(80);
+                              }
+                          });
                       }
                       case AEGIS -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getPri(), k); return; }
-                          cd.setCooldown(p, k, 10 * cM);
-                          RayTraceResult r = p.rayTraceBlocks(24);
-                          Location tgt = (r != null && r.getHitPosition() != null) ? r.getHitPosition().toLocation(w) : eye.clone().add(dir.clone().multiply(14));
-
-                          w.spawnParticle(Particle.FLASH, tgt, 6);
-                          w.spawnParticle(Particle.END_ROD, tgt, 200, 1.2, 7.0, 1.2, 0.1);
+                          RayTraceResult r = p.rayTraceBlocks(22);
+                          Location tgt = (r != null && r.getHitPosition() != null) ? r.getHitPosition().toLocation(w) : eye.clone().add(dir.clone().multiply(12));
                           w.playSound(tgt, Sound.ITEM_TRIDENT_THUNDER, 2f, 1.2f);
-                          w.playSound(tgt, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 2f, 0.6f);
-
-                          double rad = tier >= 2 ? 6.0 : 4.5;
-                          for (Entity e : w.getNearbyEntities(tgt, rad, rad, rad)) if (e instanceof LivingEntity t && t != p) {
-                              double dmg = 10.0 * dM;
-                              if (tier >= 4 && (t.getHealth() / t.getMaxHealth()) <= 0.35) dmg *= 1.30;
-                              t.damage(dmg, p);
-                              t.setFireTicks(120);
-                          }
+                          pl.spawnTask(80 + (tier * 10), 5, step -> {
+                              BlissAspects.drawHelix(tgt, 1.5, 6.0, Particle.END_ROD);
+                              w.spawnParticle(Particle.FLASH, tgt, 1);
+                              for (Entity e : tgt.getWorld().getNearbyEntities(tgt, 4.0, 6.0, 4.0)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.damage(applyExecute(tg, 2.6 * dM, tier), p);
+                                  tg.setFireTicks(60);
+                              }
+                          });
                       }
                       case BLOOM -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getPri(), k); return; }
-                          cd.setCooldown(p, k, 7 * cM);
                           w.playSound(eye, Sound.BLOCK_VINE_BREAK, 2f, 0.7f);
-                          w.playSound(eye, Sound.ENTITY_SPIDER_HURT, 1.5f, 0.5f);
-
-                          int range = tier >= 2 ? 14 : 10;
-                          for (int i = 1; i <= range; i++) {
-                              Location step = eye.clone().add(dir.clone().multiply(i));
-                              w.spawnParticle(Particle.HAPPY_VILLAGER, step, 16, 0.3, 0.3, 0.3);
-                              for (Entity e : w.getNearbyEntities(step, 1.5, 1.5, 1.5)) if (e instanceof LivingEntity t && t != p) {
-                                  double dmg = 7.0 * dM;
-                                  t.damage(dmg, p);
-                                  t.setVelocity(eye.toVector().subtract(t.getLocation().toVector()).normalize().multiply(1.2));
-                                  t.addPotionEffect(new PotionEffect(PotionEffectType.POISON, tier >= 3 ? 160 : 100, 1));
-                                  if (tier >= 3) w.spawnParticle(Particle.SPORE_BLOSSOM_AIR, t.getLocation(), 80, 1.5, 1.0, 1.5);
-                                  return;
+                          pl.spawnTask(70 + (tier * 10), 3, step -> {
+                              Location vine = eye.clone().add(dir.clone().multiply(step * 0.4));
+                              BlissAspects.drawRing(vine, 1.2, Particle.HAPPY_VILLAGER, 10);
+                              w.spawnParticle(Particle.SPORE_BLOSSOM_AIR, vine, 6, 0.3, 0.3, 0.3);
+                              for (Entity e : vine.getWorld().getNearbyEntities(vine, 2.0, 2.0, 2.0)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.damage(applyExecute(tg, 2.2 * dM, tier), p);
+                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 80, 1));
+                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 2));
                               }
-                          }
+                          });
                       }
                       case STORM -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getPri(), k); return; }
-                          cd.setCooldown(p, k, 8 * cM);
-                          RayTraceResult tr = p.rayTraceBlocks(28);
-                          Location tgt = (tr != null && tr.getHitPosition() != null) ? tr.getHitPosition().toLocation(w) : eye.clone().add(dir.clone().multiply(16));
-
-                          w.strikeLightningEffect(tgt);
-                          w.spawnParticle(Particle.ELECTRIC_SPARK, tgt, 140, 1.2, 2.5, 1.2, 0.25);
-                          w.playSound(tgt, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 2f, 1.5f);
-
-                          double rad = tier >= 2 ? 6.0 : 4.0;
-                          for (Entity e : w.getNearbyEntities(tgt, rad, rad, rad)) if (e instanceof LivingEntity t && t != p) {
-                              double dmg = 10.5 * dM;
-                              if (tier >= 4 && (t.getHealth() / t.getMaxHealth()) <= 0.35) dmg *= 1.30;
-                              t.damage(dmg, p);
-                          }
+                          RayTraceResult tr = p.rayTraceBlocks(24);
+                          Location tgt = (tr != null && tr.getHitPosition() != null) ? tr.getHitPosition().toLocation(w) : eye.clone().add(dir.clone().multiply(14));
+                          w.playSound(tgt, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 2f, 1.4f);
+                          pl.spawnTask(80 + (tier * 10), 8, step -> {
+                              w.strikeLightningEffect(tgt);
+                              BlissAspects.drawRing(tgt, 2.5, Particle.ELECTRIC_SPARK, 24);
+                              for (Entity e : tgt.getWorld().getNearbyEntities(tgt, 5.0, 4.0, 5.0)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.damage(applyExecute(tg, 3.5 * dM, tier), p);
+                              }
+                          });
                       }
                       case VOID -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getPri(), k); return; }
-                          cd.setCooldown(p, k, 12 * cM);
                           RayTraceResult tr = p.rayTraceBlocks(18);
                           Location c = (tr != null && tr.getHitPosition() != null) ? tr.getHitPosition().toLocation(w) : eye.clone().add(dir.clone().multiply(10));
                           w.playSound(c, Sound.BLOCK_BEACON_DEACTIVATE, 2f, 0.5f);
-                          w.playSound(c, Sound.BLOCK_RESPAWN_ANCHOR_DEPLETE, 1.8f, 0.6f);
-
-                          new BukkitRunnable() {
-                              int ti = 0;
-                              public void run() {
-                                  w.spawnParticle(Particle.PORTAL, c, 140, 2.2, 2.2, 2.2, 0.5);
-                                  w.spawnParticle(Particle.REVERSE_PORTAL, c, 30, 0.5, 0.5, 0.5, 0.1);
-                                  double rad = tier >= 2 ? 10.0 : 7.5;
-                                  for (Entity e : w.getNearbyEntities(c, rad, rad, rad)) if (e instanceof LivingEntity t && t != p) {
-                                      t.setVelocity(c.toVector().subtract(t.getLocation().toVector()).normalize().multiply(tier >= 3 ? 0.6 : 0.45));
-                                  }
-                                  if (++ti >= 30) {
-                                      w.playSound(c, Sound.ENTITY_WARDEN_SONIC_BOOM, 2f, 1.2f);
-                                      w.spawnParticle(Particle.SONIC_BOOM, c, 2);
-                                      for (Entity e : w.getNearbyEntities(c, 5.5, 5.5, 5.5)) if (e instanceof LivingEntity t && t != p) {
-                                          t.damage(11.5 * dM, p);
-                                      }
-                                      cancel();
-                                  }
+                          pl.spawnTask(90 + (tier * 10), 4, step -> {
+                              BlissAspects.drawRing(c, 2.2, Particle.PORTAL, 24);
+                              BlissAspects.drawRing(c, 1.0, Particle.REVERSE_PORTAL, 12);
+                              for (Entity e : c.getWorld().getNearbyEntities(c, 7.0, 5.0, 7.0)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.setVelocity(c.toVector().subtract(tg.getLocation().toVector()).normalize().multiply(0.45));
+                                  tg.damage(applyExecute(tg, 1.8 * dM, tier), p);
                               }
-                          }.runTaskTimer(pl, 0L, 1L);
+                          });
                       }
                       case PHANTOM -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getPri(), k); return; }
                           RayTraceResult ry = p.rayTraceEntities(16);
                           if (ry != null && ry.getHitEntity() instanceof LivingEntity tg && tg != p) {
-                              cd.setCooldown(p, k, 10 * cM);
                               Location bh = tg.getLocation().subtract(tg.getLocation().getDirection().normalize().multiply(1.5));
                               bh.setDirection(tg.getLocation().subtract(bh).toVector());
                               p.teleport(bh);
-
-                              double dmg = 9.0 * dM;
-                              if (tier >= 4 && (tg.getHealth() / tg.getMaxHealth()) <= 0.35) dmg *= 1.30;
-                              tg.damage(dmg, p);
-                              tg.addPotionEffect(new PotionEffect(PotionEffectType.DARKNESS, 100, 1));
-                              w.spawnParticle(Particle.SQUID_INK, bh, 70, 0.6, 1.2, 0.6, 0.05);
                               w.playSound(bh, Sound.ENTITY_PLAYER_ATTACK_CRIT, 1.8f, 0.7f);
+                              tg.damage(applyExecute(tg, 9.0 * dM, tier), p);
+                              tg.addPotionEffect(new PotionEffect(PotionEffectType.DARKNESS, 100, 1));
+                              BlissAspects.drawSphere(bh, 2.0, Particle.SQUID_INK);
                           } else {
-                              p.sendActionBar(Component.text("Aim at a target to Ambush!", NamedTextColor.GRAY));
+                              p.sendActionBar(Component.text("Aim at a target to Assassinate!", NamedTextColor.GRAY));
                           }
                       }
                       case KNIGHT -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getPri(), k); return; }
-                          cd.setCooldown(p, k, 7 * cM);
-                          p.setVelocity(dir.clone().setY(0.2).multiply(2.2));
+                          p.setVelocity(dir.clone().setY(0.2).multiply(2.4));
                           w.playSound(eye, Sound.ITEM_ARMOR_EQUIP_NETHERITE, 2f, 0.7f);
-                          w.playSound(eye, Sound.ITEM_TRIDENT_RIPTIDE_1, 1.5f, 1.2f);
-
-                          new BukkitRunnable() {
-                              int rt = 0;
-                              public void run() {
-                                  w.spawnParticle(Particle.CRIT, p.getLocation().add(0, 0.8, 0), 15, 0.4, 0.4, 0.4, 0.05);
-                                  for (Entity e : p.getNearbyEntities(2.0, 2.0, 2.0)) if (e instanceof LivingEntity t && t != p) {
-                                      t.damage(8.5 * dM, p);
-                                      t.setVelocity(p.getLocation().getDirection().multiply(1.6).setY(0.45));
-                                      w.playSound(t.getLocation(), Sound.ITEM_SHIELD_BLOCK, 2f, 0.6f);
-                                      if (tier >= 3) t.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 3));
-                                      cancel(); return;
-                                  }
-                                  if (++rt > 15) cancel();
+                          pl.spawnTask(50 + (tier * 5), 2, step -> {
+                              BlissAspects.drawRing(p.getLocation().add(0, 0.8, 0), 1.0, Particle.CRIT, 12);
+                              for (Entity e : p.getNearbyEntities(2.2, 2.2, 2.2)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.damage(applyExecute(tg, 8.5 * dM, tier), p);
+                                  tg.setVelocity(p.getLocation().getDirection().multiply(1.6).setY(0.45));
+                                  w.playSound(tg.getLocation(), Sound.ITEM_SHIELD_BLOCK, 2f, 0.6f);
                               }
-                          }.runTaskTimer(pl, 1L, 1L);
+                          });
                       }
                   }
               }
 
-              private void castSec(Player p, AspectType a, int tier, double cM) {
-                  String k = "sec";
-                  World w = p.getWorld();
-                  Location eye = p.getEyeLocation();
-                  Vector dir = eye.getDirection().normalize();
+              // MOVE 2: SUSTAINED PLAYER STATES & BUFFS (Shift + Right Click)
+              private void castMove2(Player p, AspectType a, int tier, double cM) {
+                  String k = "m2";
+                  double baseCd = cd.getConfigCooldown(a, 2);
+                  if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getM2(), k); return; }
+                  cd.setCooldown(p, k, baseCd * cM);
+
+                  World w = p.getWorld(); Location eye = p.getEyeLocation();
+                  int duration = 100 + (tier * 20); // 5 to 10 seconds!
 
                   switch (a) {
-                      case TERRA -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getSec(), k); return; }
-                          cd.setCooldown(p, k, 14 * cM);
-                          p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 140, tier >= 3 ? 3 : 2));
-                          p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 180, tier >= 3 ? 2 : 1));
+                      case TERRA -> { // Titan Fortress (Sustained Stone Shield)
                           w.playSound(eye, Sound.BLOCK_ANVIL_LAND, 2f, 0.6f);
-                          w.spawnParticle(Particle.BLOCK, p.getLocation().add(0, 0.5, 0), 220, 3.0, 1.2, 3.0, Material.STONE.createBlockData());
-                          if (tier >= 3) for (Entity e : p.getNearbyEntities(6, 2, 6)) if (e instanceof LivingEntity t && t != p) t.setVelocity(t.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(1.4));
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, duration, 2));
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, duration, 2));
+                          pl.spawnTask(duration, 5, step -> {
+                              BlissAspects.drawSphere(p.getLocation(), 2.8, Particle.BLOCK);
+                              for (Entity e : p.getNearbyEntities(4.5, 2.0, 4.5)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.setVelocity(tg.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(0.6));
+                              }
+                          });
                       }
-                      case FROST -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getSec(), k); return; }
-                          cd.setCooldown(p, k, 7 * cM);
-                          p.setVelocity(dir.clone().setY(0.2).multiply(2.0));
+                      case FROST -> { // Glacial Armor State
                           w.playSound(eye, Sound.BLOCK_POWDER_SNOW_STEP, 2f, 1.4f);
-                          w.spawnParticle(Particle.SNOWFLAKE, eye, 80, 0.8, 0.8, 0.8, 0.05);
-                          if (tier >= 3) p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 60, 1));
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, duration, 2));
+                          pl.spawnTask(duration, 4, step -> {
+                              BlissAspects.drawSphere(p.getLocation(), 2.2, Particle.SNOWFLAKE);
+                              for (Entity e : p.getNearbyEntities(3.0, 2.0, 3.0)) if (e instanceof LivingEntity tg && tg != p) {
+                                  tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 2));
+                              }
+                          });
                       }
-                      case REAPER -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getSec(), k); return; }
-                          cd.setCooldown(p, k, 12 * cM);
-                          p.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 100, 0, false, false));
-                          p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, tier >= 3 ? 3 : 2, false, false));
+                      case REAPER -> { // Wraith Trance
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, duration, 0, false, false));
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, duration, 2, false, false));
                           w.playSound(eye, Sound.ENTITY_PHANTOM_FLAP, 2f, 0.5f);
-                          w.spawnParticle(Particle.SQUID_INK, eye, 80, 0.6, 1.0, 0.6, 0.05);
+                          pl.spawnTask(duration, 3, step -> {
+                              w.spawnParticle(Particle.SQUID_INK, p.getLocation().add(0, 0.8, 0), 12, 0.3, 0.5, 0.3, 0.02);
+                              BlissAspects.drawRing(p.getLocation().add(0, 0.2, 0), 1.0, Particle.SOUL_FIRE_FLAME, 8);
+                          });
                       }
-                      case RAGE -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getSec(), k); return; }
-                          cd.setCooldown(p, k, 12 * cM);
+                      case RAGE -> { // Berserker Rampage Trance
                           p.removePotionEffect(PotionEffectType.SLOWNESS);
-                          p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 160, 1));
-                          p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 140, tier >= 3 ? 1 : 0));
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, duration, 1));
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, duration, 1));
                           w.playSound(eye, Sound.ENTITY_ENDER_DRAGON_GROWL, 2f, 1.4f);
-                          w.spawnParticle(Particle.SONIC_BOOM, eye, 1);
-                          w.spawnParticle(Particle.ANGRY_VILLAGER, eye, 30, 0.8, 0.8, 0.8);
+                          pl.spawnTask(duration, 4, step -> {
+                              BlissAspects.drawHelix(p.getLocation(), 1.2, 2.2, Particle.FLAME);
+                              w.spawnParticle(Particle.ANGRY_VILLAGER, p.getLocation().add(0, 1.5, 0), 2, 0.2, 0.2, 0.2);
+                          });
                       }
-                      case AEGIS -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getSec(), k); return; }
-                          cd.setCooldown(p, k, 16 * cM);
-                          p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 200, tier >= 3 ? 2 : 1));
+                      case AEGIS -> { // Divine Sanctuary Dome
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, duration, 3));
                           w.playSound(eye, Sound.BLOCK_BEACON_ACTIVATE, 2f, 1.8f);
-                          w.spawnParticle(Particle.TOTEM_OF_UNDYING, eye, 140, 1.8, 1.8, 1.8, 0.25);
+                          pl.spawnTask(duration, 4, step -> {
+                              BlissAspects.drawSphere(p.getLocation(), 3.5, Particle.TOTEM_OF_UNDYING);
+                              for (Entity e : p.getNearbyEntities(4.0, 4.0, 4.0)) if (e instanceof Projectile proj) {
+                                  proj.setVelocity(proj.getVelocity().multiply(-0.9));
+                              }
+                          });
                       }
-                      case BLOOM -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getSec(), k); return; }
-                          cd.setCooldown(p, k, 13 * cM);
-                          p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 160, tier >= 3 ? 2 : 1));
-                          p.setHealth(Math.min(p.getMaxHealth(), p.getHealth() + (tier >= 3 ? 6.0 : 4.0)));
+                      case BLOOM -> { // Verdant Cocoon
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, duration, 2));
                           w.playSound(eye, Sound.ENTITY_ALLAY_ITEM_TAKEN, 2f, 0.6f);
-                          w.spawnParticle(Particle.SPORE_BLOSSOM_AIR, eye, 250, 3.0, 1.8, 3.0);
-                          w.spawnParticle(Particle.HEART, eye.add(0, 0.5, 0), 14, 0.6, 0.6, 0.6);
+                          pl.spawnTask(duration, 4, step -> {
+                              BlissAspects.drawSphere(p.getLocation(), 2.5, Particle.SPORE_BLOSSOM_AIR);
+                              w.spawnParticle(Particle.HEART, p.getLocation().add(0, 1.2, 0), 2, 0.3, 0.3, 0.3);
+                              p.setHealth(Math.min(p.getMaxHealth(), p.getHealth() + 0.5));
+                          });
                       }
-                      case STORM -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getSec(), k); return; }
-                          cd.setCooldown(p, k, 8 * cM);
-                          Location to = eye.clone().add(dir.clone().multiply(tier >= 2 ? 11 : 9));
-                          if (to.getBlock().isPassable()) p.teleport(to);
+                      case STORM -> { // Supercharged State
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, duration, 2));
                           w.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 1.8f, 1.8f);
-                          w.spawnParticle(Particle.ELECTRIC_SPARK, p.getLocation().add(0, 1, 0), 100, 0.8, 1.2, 0.8, 0.15);
+                          pl.spawnTask(duration, 3, step -> {
+                              BlissAspects.drawHelix(p.getLocation(), 1.0, 2.0, Particle.ELECTRIC_SPARK);
+                          });
                       }
-                      case VOID -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getSec(), k); return; }
-                          cd.setCooldown(p, k, 9 * cM);
-                          p.setVelocity(dir.clone().multiply(-1.6).setY(0.4));
+                      case VOID -> { // Dimensional Rift
+                          p.setVelocity(eye.getDirection().multiply(-1.8).setY(0.4));
                           w.playSound(eye, Sound.ENTITY_ENDERMAN_TELEPORT, 2f, 0.6f);
-                          w.spawnParticle(Particle.PORTAL, eye, 120, 1.0, 1.0, 1.0, 0.25);
+                          pl.spawnTask(duration, 3, step -> {
+                              BlissAspects.drawRing(p.getLocation().add(0, 0.6, 0), 1.5, Particle.PORTAL, 16);
+                          });
                       }
-                      case PHANTOM -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getSec(), k); return; }
-                          cd.setCooldown(p, k, 18 * cM);
+                      case PHANTOM -> { // Cloaked Stealth Mode
                           ghost.add(p.getUniqueId());
-                          p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 70, tier >= 3 ? 2 : 1));
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, duration, 2));
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, duration, 0, false, false));
                           w.playSound(eye, Sound.ENTITY_VEX_CHARGE, 2f, 0.7f);
-                          w.spawnParticle(Particle.SOUL, eye, 70, 0.6, 1.0, 0.6, 0.05);
-                          Bukkit.getScheduler().runTaskLater(pl, () -> ghost.remove(p.getUniqueId()), 70L);
+                          pl.spawnTask(duration, 3, step -> {
+                              w.spawnParticle(Particle.SOUL, p.getLocation().add(0, 0.8, 0), 5, 0.3, 0.5, 0.3, 0.02);
+                          });
+                          Bukkit.getScheduler().runTaskLater(pl, () -> ghost.remove(p.getUniqueId()), duration);
                       }
-                      case KNIGHT -> {
-                          if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getSec(), k); return; }
-                          cd.setCooldown(p, k, 10 * cM);
+                      case KNIGHT -> { // Iron Guard State
                           parry.add(p.getUniqueId());
                           w.playSound(eye, Sound.ITEM_SHIELD_BLOCK, 2f, 1.3f);
-                          w.spawnParticle(Particle.CRIT, eye, 45, 0.5, 0.5, 0.5, 0.1);
-                          Bukkit.getScheduler().runTaskLater(pl, () -> parry.remove(p.getUniqueId()), 40L);
+                          pl.spawnTask(duration, 4, step -> {
+                              BlissAspects.drawRing(p.getLocation().add(0, 1.0, 0), 1.8, Particle.CRIT, 16);
+                          });
+                          Bukkit.getScheduler().runTaskLater(pl, () -> parry.remove(p.getUniqueId()), duration);
                       }
                   }
+              }
+
+              // MOVE 3: SUSTAINED CROWD CONTROL (Left Click with Gem)
+              private void castMove3(Player p, AspectType a, int tier, double dM, double cM) {
+                  String k = "m3";
+                  double baseCd = cd.getConfigCooldown(a, 3);
+                  if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getM3(), k); return; }
+                  cd.setCooldown(p, k, baseCd * cM);
+
+                  World w = p.getWorld(); Location loc = p.getLocation();
+                  w.playSound(loc, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 1.8f, 1.2f);
+
+                  int dur = 80 + (tier * 15);
+                  pl.spawnTask(dur, 4, step -> {
+                      BlissAspects.drawRing(loc, 3.5, Particle.WITCH, 24);
+                      for (Entity e : loc.getWorld().getNearbyEntities(loc, 5.5, 3.0, 5.5)) if (e instanceof LivingEntity tg && tg != p) {
+                          tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 3));
+                          tg.damage(applyExecute(tg, 1.5 * dM, tier), p);
+                      }
+                  });
+              }
+
+              // MOVE 4: CATACLYSMIC 6-SECOND DOMAIN (Drop Key 'Q' with Gem)
+              private void castMove4(Player p, AspectType a, int tier, double dM, double cM) {
+                  String k = "m4";
+                  double baseCd = cd.getConfigCooldown(a, 4);
+                  if (cd.isOnCooldown(p, k)) { cd.notice(p, a.getM4(), k); return; }
+                  cd.setCooldown(p, k, baseCd * cM);
+
+                  World w = p.getWorld(); Location c = p.getLocation();
+                  w.playSound(c, Sound.ENTITY_WARDEN_SONIC_BOOM, 2.5f, 0.8f);
+                  w.playSound(c, Sound.UI_TOAST_CHALLENGE_COMPLETE, 2.0f, 0.6f);
+
+                  p.sendMessage(Component.text("✦ UNLEASHED DOMAIN: " + a.getM4() + " ✦", NamedTextColor.GOLD).decorate(TextDecoration.BOLD));
+
+                  int dur = 120 + (tier * 20); // 6 to 8 seconds!
+                  pl.spawnTask(dur, 5, step -> {
+                      BlissAspects.drawRing(c, 7.0, Particle.END_ROD, 32);
+                      BlissAspects.drawRing(c, 4.0, Particle.SONIC_BOOM, 8);
+                      w.spawnParticle(Particle.FLASH, c.clone().add(0, 1.5, 0), 2);
+                      for (Entity e : c.getWorld().getNearbyEntities(c, 8.5, 5.0, 8.5)) if (e instanceof LivingEntity tg && tg != p) {
+                          tg.damage(applyExecute(tg, 3.5 * dM, tier), p);
+                          tg.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 2));
+                          tg.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 60, 1));
+                      }
+                  });
               }
 
               @EventHandler
               public void onKill(EntityDeathEvent e) {
-                  Player k = e.getEntity().getKiller();
-                  if (k == null) return;
-                  ItemStack gem = gm.getWieldedGem(k);
+                  Player killer = e.getEntity().getKiller();
+                  if (killer == null) return;
+                  if (!(e.getEntity() instanceof Player victim)) return;
+
+                  ItemStack gem = gm.getWieldedGem(killer);
                   if (gem == null) return;
 
-                  AspectType a = gm.getGemAspect(gem);
-                  int kills = gm.getGemKills(gem);
-                  int newKills = Math.min(50, kills + (e.getEntity() instanceof Player ? 5 : 1));
-                  gm.updateMeta(gem, a, newKills);
-
-                  if (newKills / 10 > kills / 10) {
-                      k.sendMessage(Component.text("★ Your " + a.getDisplayName() + " Gem upgraded to Tier " + (newKills / 10) + "! ★", NamedTextColor.GOLD));
-                      k.playSound(k.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.8f, 1.2f);
-                  }
-              }
-
-              @EventHandler
-              public void onDamage(EntityDamageByEntityEvent e) {
-                  if (e.getEntity() instanceof Player v && ghost.contains(v.getUniqueId())) {
-                      e.setCancelled(true); return;
-                  }
-                  if (e.getEntity() instanceof Player def && parry.contains(def.getUniqueId())) {
-                      e.setCancelled(true);
-                      parry.remove(def.getUniqueId());
-                      def.getWorld().playSound(def.getLocation(), Sound.BLOCK_ANVIL_PLACE, 1.8f, 1.8f);
-                      def.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 100, 1));
-                      if (e.getDamager() instanceof LivingEntity atk) atk.damage(7.0, def);
+                  if (gm.addUniquePlayerKill(gem, victim.getUniqueId())) {
+                      AspectType a = gm.getGemAspect(gem);
+                      int newKills = Math.min(5, gm.getGemKills(gem) + 1);
+                      gm.updateMeta(gem, a, newKills);
+                      killer.sendMessage(Component.text("★ Harvested Unique Soul of " + victim.getName() + "! Gem upgraded to Tier " + newKills + "! ★", NamedTextColor.GOLD));
+                      killer.playSound(killer.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 2.0f, 1.0f);
+                  } else {
+                      killer.sendMessage(Component.text("You have already harvested this player's soul!", NamedTextColor.RED));
                   }
               }
           }
 
           class AspectCommand implements CommandExecutor, TabCompleter {
+              private final BlissAspects pl;
               private final CooldownManager cd;
               private final GemManager gm;
-              public AspectCommand(CooldownManager cd, GemManager gm) { this.cd = cd; this.gm = gm; }
+              public AspectCommand(BlissAspects pl, CooldownManager cd, GemManager gm) { this.pl = pl; this.cd = cd; this.gm = gm; }
 
               public boolean onCommand(CommandSender s, Command c, String l, String[] a) {
                   if (a.length == 0 || a[0].equalsIgnoreCase("info")) {
@@ -654,7 +780,7 @@ jobs:
                       ItemStack gem = gm.getWieldedGem(p);
                       if (gem != null) {
                           s.sendMessage(Component.text("Holding: ", NamedTextColor.GOLD).append(gm.getGemAspect(gem).getFormattedName()));
-                          s.sendMessage(Component.text("Souls: " + gm.getGemKills(gem) + " / 50", NamedTextColor.AQUA));
+                          s.sendMessage(Component.text("Unique Souls: " + gm.getGemKills(gem) + " / 5 Players", NamedTextColor.AQUA));
                       } else s.sendMessage(Component.text("Hold an Aspect Gem in your hand to view stats!", NamedTextColor.GRAY));
                       return true;
                   }
@@ -675,11 +801,16 @@ jobs:
                       if (target != null) { cd.reset(target); s.sendMessage(Component.text("Cooldowns reset!", NamedTextColor.GREEN)); }
                       return true;
                   }
+                  if (a[0].equalsIgnoreCase("reload") && s.hasPermission("bliss.admin")) {
+                      pl.reloadConfig();
+                      s.sendMessage(Component.text("BlissAspects config reloaded successfully!", NamedTextColor.GREEN));
+                      return true;
+                  }
                   return true;
               }
 
               public List<String> onTabComplete(CommandSender s, Command c, String al, String[] a) {
-                  if (a.length == 1) return List.of("give", "resetcd", "info");
+                  if (a.length == 1) return List.of("give", "resetcd", "reload", "info");
                   if (a.length == 3 && a[0].equalsIgnoreCase("give")) {
                       List<String> list = new ArrayList<>();
                       for (AspectType t : AspectType.values()) list.add(t.name().toLowerCase());
@@ -695,5 +826,5 @@ jobs:
       - name: Upload Finished Jar
         uses: actions/upload-artifact@v4
         with:
-          name: BlissAspects-3.0-Plugin
+          name: BlissAspects-5.0-Plugin
           path: target/BlissAspects.jar
