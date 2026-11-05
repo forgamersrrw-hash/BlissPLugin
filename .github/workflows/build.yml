@@ -30,7 +30,7 @@ jobs:
               <modelVersion>4.0.0</modelVersion>
               <groupId>com.bliss</groupId>
               <artifactId>BlissAspects</artifactId>
-              <version>12.0.0</version>
+              <version>14.0.0</version>
               <packaging>jar</packaging>
               <properties><java.version>21</java.version><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding></properties>
               <repositories>
@@ -44,7 +44,7 @@ jobs:
           </project>""")
 
           save("src/main/resources/plugin.yml", r"""name: BlissAspects
-          version: 12.0.0
+          version: 14.0.0
           main: com.bliss.aspects.BlissAspects
           api-version: '1.21'
           commands:
@@ -57,7 +57,7 @@ jobs:
             TERRA:
               move1: 14.0
               move2: 24.0
-              move3: 20.0
+              move3: 18.0
               move4: 60.0
             FROST:
               move1: 12.0
@@ -144,7 +144,7 @@ jobs:
                   Objects.requireNonNull(getCommand("aspect")).setExecutor(cmd);
                   Objects.requireNonNull(getCommand("aspect")).setTabCompleter(cmd);
 
-                  // Continuous Bliss Ambient Halo & Passive Loop
+                  // Continuous Passive Aura & Ambient Halo Loop
                   Bukkit.getScheduler().runTaskTimer(this, () -> {
                       for (Player p : Bukkit.getOnlinePlayers()) {
                           ItemStack gem = gm.getWieldedGem(p);
@@ -291,25 +291,25 @@ jobs:
 
           enum AspectType {
               TERRA("Terra", NamedTextColor.GOLD, 1001, Color.fromRGB(218, 140, 40), Color.fromRGB(110, 80, 50),
-                    "Seismic Fissure", "Titan Fortress Stance", "Gravity Quake", "World-Breaker Faultline", "Knockback II & Protection III", "LEGENDARY"),
+                    "Cataclysmic Fissure", "Bastion Bulwark", "Earthquake Slam", "Wrath of Continental Drift", "Knockback II & Protection III", "LEGENDARY"),
               FROST("Frost", TextColor.color(0x70D6FF), 1002, Color.fromRGB(100, 220, 255), Color.fromRGB(240, 255, 255),
-                    "Blizzard Helix Beam", "Glacial Ice Armor", "Ice Age Rune", "Glacial Extinction", "Frost Walker II & Freezing Edge", "RARE"),
+                    "Ice Shard Barrage", "Glacial Slide", "Cryo-Stasis Cage", "Permafrost Blizzard", "Frost Walker II & Freezing Edge", "RARE"),
               REAPER("Reaper", NamedTextColor.DARK_PURPLE, 1003, Color.fromRGB(0, 255, 210), Color.fromRGB(90, 20, 160),
-                    "Soul Crescent Wave", "Wraith Trance", "Death's Leash", "Harvest of the Damned", "Sweeping Edge III & Soul Siphon", "MYTHIC"),
+                    "Death Crescent", "Shadow Mist Phase", "Grave Pull", "Soul Harvest Eclipse", "Sweeping Edge III & Soul Siphon", "MYTHIC"),
               RAGE("Rage", NamedTextColor.RED, 1004, Color.fromRGB(255, 25, 25), Color.fromRGB(255, 120, 0),
-                    "Infernal Magma Wave", "Berserker Rampage", "Blood Pull", "Ashen Blood Calamity", "Fire Aspect II & 100% AUTOCRIT", "LEGENDARY"),
+                    "Inferno Cleave", "Berserk Rampage", "Meteor Stomp", "Hellfire Eruption", "Fire Aspect II & 100% AUTOCRIT", "LEGENDARY"),
               AEGIS("Aegis", TextColor.color(0xFFD166), 1005, Color.fromRGB(255, 215, 60), Color.fromRGB(255, 255, 220),
-                    "Radiant Celestial Spear", "Divine Sanctuary Dome", "Repulsion Wave", "Heavenly Retribution", "Protection IV & Thorns III", "EPIC"),
+                    "Sunfire Smite", "Sanctuary Dome", "Solar Repulsion", "Heaven's Judgment", "Protection IV & Thorns III", "EPIC"),
               BLOOM("Bloom", NamedTextColor.GREEN, 1006, Color.fromRGB(60, 255, 60), Color.fromRGB(255, 120, 180),
-                    "Bramble Piercing Lance", "Verdant Cocoon", "Floral Rooting", "World Tree Genesis", "Mending & Natural Regrowth", "RARE"),
+                    "Bramble Whip", "Verdant Cocoon", "Thorny Tangle", "Genesis Overgrowth", "Mending & Natural Regrowth", "RARE"),
               STORM("Storm", NamedTextColor.AQUA, 1007, Color.fromRGB(0, 240, 255), Color.fromRGB(255, 240, 40),
-                    "Tempest Arc Discharge", "Supercharged State", "Static Pull", "Wrath of the Thunder God", "Channeling & Lightning Strike", "MYTHIC"),
+                    "Chain Lightning Arc", "Thunder Blink", "Magnetic Vortex", "Overdrive Supercell", "Channeling & Lightning Strike", "MYTHIC"),
               VOID("Void", TextColor.color(0x9D4EDD), 1008, Color.fromRGB(140, 0, 255), Color.fromRGB(40, 0, 70),
-                    "Singularity Ray", "Dimensional Rift", "Zero-Gravity Well", "Singularity Zero", "Feather Falling IV & Void Repel", "TRANSCENDENT"),
+                    "Singularity Lance", "Dimensional Warp", "Gravitational Inversion", "Black Hole Singularity", "Feather Falling IV & Void Repel", "TRANSCENDENT"),
               PHANTOM("Phantom", NamedTextColor.DARK_GRAY, 1009, Color.fromRGB(40, 220, 180), Color.fromRGB(80, 80, 90),
-                    "Shadow Assassination", "Cloaked Stealth", "Smoke Decoy", "Realm of Shadows", "Swift Sneak III & True Invisibility", "EPIC"),
+                    "Shadow Step Assassinate", "Mist Form", "Blinding Smoke Bomb", "Midnight Eclipse", "Swift Sneak III & True Invisibility", "EPIC"),
               KNIGHT("Knight", NamedTextColor.WHITE, 1010, Color.fromRGB(240, 240, 255), Color.fromRGB(255, 200, 80),
-                    "Jousting Charge", "Iron Guard Stance", "War Tremor", "Colossus Bulwark", "+6 Armor & Unyielding Poise", "RARE");
+                    "Jousting Shield Charge", "Iron Guard Stance", "War Tremor", "Colossus Stand", "+6 Armor & Unyielding Poise", "RARE");
 
               private final String d, m1, m2, m3, m4, p, rarity;
               private final int cmd;
@@ -401,7 +401,7 @@ jobs:
                   lore.add(Component.text("  " + a.getPassiveDesc(), NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.empty());
                   lore.add(Component.text("✦ [R-CLICK]  " + a.getM1(), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
-                  lore.add(Component.text("  Primary elemental burst / directional strike", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+                  lore.add(Component.text("  Primary offensive burst / directional strike", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("✦ [SHIFT+R]  " + a.getM2(), NamedTextColor.AQUA).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("  Orbital planetary shield / evasive stance", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
                   lore.add(Component.text("✦ [L-CLICK]  " + a.getM3(), NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
@@ -843,40 +843,99 @@ jobs:
               }
           }""")
 
-          # High-Quality 16x16 Faceted Gem PNG Generator
-          def make_gem_png(color, accent):
+          # Multi-Silhouette 16x16 Faceted Gem PNG Engine
+          def make_gem_png(shape_type, color, accent):
               w, h = 16, 16
-              mask = [
-                  0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
-                  0,0,0,0,1,1,2,3,3,2,1,1,0,0,0,0,
-                  0,0,0,1,2,3,3,3,3,3,2,2,1,0,0,0,
-                  0,0,1,2,3,3,2,2,2,2,3,2,2,1,0,0,
-                  0,1,2,3,2,2,2,2,2,2,2,2,2,2,1,0,
-                  0,1,3,2,2,2,2,2,2,2,2,2,2,2,1,0,
-                  1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,
-                  1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,
-                  1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,
-                  0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,
-                  0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,
-                  0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,
-                  0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0,
-                  0,0,0,0,1,1,2,2,2,2,1,1,0,0,0,0,
-                  0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-              ]
+              # Distinct Shape Masks: 0=Empty, 1=Border, 2=Base Color, 3=Highlight Shading
+              masks = {
+                  "square": [
+                      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                      0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,
+                      0,0,1,3,3,3,3,3,3,3,3,2,2,1,0,0,
+                      0,1,3,3,3,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,3,3,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,3,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,3,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,3,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,3,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,3,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,
+                      0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,
+                      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                  ],
+                  "shard": [
+                      0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,
+                      0,0,0,0,0,0,1,3,3,1,0,0,0,0,0,0,
+                      0,0,0,0,0,1,3,3,3,2,1,0,0,0,0,0,
+                      0,0,0,0,1,3,3,3,2,2,2,1,0,0,0,0,
+                      0,0,0,1,3,3,3,2,2,2,2,2,1,0,0,0,
+                      0,0,1,3,3,2,2,2,2,2,2,2,2,1,0,0,
+                      0,1,3,3,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,
+                      0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0,
+                      0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,
+                      0,0,0,0,0,1,2,2,2,2,1,0,0,0,0,0,
+                      0,0,0,0,0,0,1,2,2,1,0,0,0,0,0,0,
+                      0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,
+                      0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,
+                      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                  ],
+                  "crescent": [
+                      0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
+                      0,0,0,0,1,1,3,3,3,2,1,1,0,0,0,0,
+                      0,0,0,1,3,3,3,1,1,1,2,2,1,0,0,0,
+                      0,0,1,3,3,1,0,0,0,0,1,2,2,1,0,0,
+                      0,1,3,3,1,0,0,0,0,0,0,1,2,2,1,0,
+                      0,1,3,2,1,0,0,0,0,0,0,1,2,2,1,0,
+                      1,3,2,1,0,0,0,0,0,0,0,0,1,2,2,1,
+                      1,3,2,1,0,0,0,0,0,0,0,0,1,2,2,1,
+                      1,3,2,1,0,0,0,0,0,0,0,0,1,2,2,1,
+                      0,1,3,2,1,0,0,0,0,0,0,1,2,2,1,0,
+                      0,1,2,2,1,0,0,0,0,0,0,1,2,2,1,0,
+                      0,0,1,2,2,1,0,0,0,0,1,2,2,1,0,0,
+                      0,0,0,1,2,2,1,1,1,1,2,2,1,0,0,0,
+                      0,0,0,0,1,1,2,2,2,2,1,1,0,0,0,0,
+                      0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
+                      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                  ],
+                  "shield": [
+                      0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,
+                      0,0,1,3,3,3,3,3,3,3,3,2,2,1,0,0,
+                      0,1,3,3,3,3,3,3,3,3,2,2,2,2,1,0,
+                      0,1,3,3,3,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,3,3,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,3,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,1,3,2,2,2,2,2,2,2,2,2,2,2,1,0,
+                      0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,
+                      0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,
+                      0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0,
+                      0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0,
+                      0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,
+                      0,0,0,0,0,1,2,2,2,2,1,0,0,0,0,0,
+                      0,0,0,0,0,0,1,2,2,1,0,0,0,0,0,0,
+                      0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,
+                      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                  ]
+              }
+
+              mask = masks.get(shape_type, masks["shield"])
               raw = bytearray()
               for y in range(h):
                   raw.append(0)
                   for x in range(w):
-                      val = mask[y*16 + x]
+                      val = mask[y * 16 + x]
                       if val == 0:
                           raw.extend([0, 0, 0, 0])
                       elif val == 1:
-                          raw.extend([max(0, accent[0]//2), max(0, accent[1]//2), max(0, accent[2]//2), 255])
+                          raw.extend([max(0, accent[0] // 3), max(0, accent[1] // 3), max(0, accent[2] // 3), 255])
                       elif val == 2:
                           raw.extend([color[0], color[1], color[2], 255])
                       elif val == 3:
-                          raw.extend([min(255, color[0]+65), min(255, color[1]+65), min(255, color[2]+65), 255])
+                          raw.extend([min(255, color[0] + 75), min(255, color[1] + 75), min(255, color[2] + 75), 255])
 
               def chunk(tag, data):
                   return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xffffffff)
@@ -887,24 +946,24 @@ jobs:
               png += chunk(b"IEND", b"")
               return png
 
-          gem_colors = {
-              "terra":   ([218, 140, 40], [110, 80, 50]),
-              "frost":   ([100, 220, 255], [240, 255, 255]),
-              "reaper":  ([0, 255, 210], [90, 20, 160]),
-              "rage":    ([255, 25, 25], [255, 120, 0]),
-              "aegis":   ([255, 215, 60], [255, 255, 220]),
-              "bloom":   ([60, 255, 60], [255, 120, 180]),
-              "storm":   ([0, 240, 255], [255, 240, 40]),
-              "void":    ([140, 0, 255], [40, 0, 70]),
-              "phantom": ([40, 220, 180], [80, 80, 90]),
-              "knight":  ([240, 240, 255], [255, 200, 80])
+          gem_configs = {
+              "terra":   ("square",   [218, 140, 40], [110, 80, 50]),
+              "frost":   ("shard",    [100, 220, 255], [240, 255, 255]),
+              "reaper":  ("crescent", [0, 255, 210],   [90, 20, 160]),
+              "rage":    ("shard",    [255, 25, 25],   [255, 120, 0]),
+              "aegis":   ("shield",   [255, 215, 60],  [255, 255, 220]),
+              "bloom":   ("square",   [60, 255, 60],   [255, 120, 180]),
+              "storm":   ("shard",    [0, 240, 255],   [255, 240, 40]),
+              "void":    ("crescent", [140, 0, 255],   [40, 0, 70]),
+              "phantom": ("shard",    [40, 220, 180],  [80, 80, 90]),
+              "knight":  ("shield",   [240, 240, 255], [255, 200, 80])
           }
 
           save("resourcepack/pack.mcmeta", r"""{
             "pack": {
               "pack_format": 34,
               "supported_formats": [34, 46],
-              "description": "BlissAspects Custom Gems Texture Pack"
+              "description": "BlissAspects Custom Gem Textures"
             }
           }""")
 
@@ -947,7 +1006,7 @@ jobs:
             }
           }""")
 
-          for gem, (col, acc) in gem_colors.items():
+          for gem, (shape, col, acc) in gem_configs.items():
               save(f"resourcepack/assets/minecraft/models/item/custom/{gem}_gem.json", f"""{{
                 "parent": "minecraft:item/generated",
                 "textures": {{ "layer0": "minecraft:item/custom/{gem}_gem" }}
@@ -955,7 +1014,7 @@ jobs:
               tex_path = f"resourcepack/assets/minecraft/textures/item/custom/{gem}_gem.png"
               os.makedirs(os.path.dirname(tex_path), exist_ok=True)
               with open(tex_path, "wb") as f:
-                  f.write(make_gem_png(col, acc))
+                  f.write(make_gem_png(shape, col, acc))
 
           with zipfile.ZipFile("BlissAspects-ResourcePack.zip", 'w', zipfile.ZIP_DEFLATED) as zipf:
               for root, dirs, files in os.walk("resourcepack"):
@@ -970,7 +1029,7 @@ jobs:
       - name: Upload Plugin Jar
         uses: actions/upload-artifact@v4
         with:
-          name: BlissAspects-12.0-Plugin
+          name: BlissAspects-14.0-Plugin
           path: target/BlissAspects.jar
 
       - name: Upload Texture Pack with Native PNGs
