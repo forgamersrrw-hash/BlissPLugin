@@ -30,7 +30,7 @@ jobs:
               <modelVersion>4.0.0</modelVersion>
               <groupId>com.bliss</groupId>
               <artifactId>BlissAspects</artifactId>
-              <version>10.0.0</version>
+              <version>10.1.0</version>
               <packaging>jar</packaging>
               <properties><java.version>21</java.version><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding></properties>
               <repositories>
@@ -44,7 +44,7 @@ jobs:
           </project>""")
 
           save("src/main/resources/plugin.yml", r"""name: BlissAspects
-          version: 10.0.0
+          version: 10.1.0
           main: com.bliss.aspects.BlissAspects
           api-version: '1.21'
           commands:
@@ -110,6 +110,7 @@ jobs:
           import net.kyori.adventure.text.Component;
           import net.kyori.adventure.text.format.*;
           import org.bukkit.*;
+          import org.bukkit.Color;
           import org.bukkit.Particle.DustOptions;
           import org.bukkit.command.*;
           import org.bukkit.enchantments.Enchantment;
@@ -185,9 +186,20 @@ jobs:
                   }, 0L, 20L);
               }
 
-              // Custom Colored Dust Particle Spawner
+              // Custom Colored Dust Particle Spawner with Full 8 Parameters
               public static void spawnColoredDust(Location loc, Color c, float size, int count) {
-                  loc.getWorld().spawnParticle(Particle.DUST, loc, count, 0.2, 0.2, 0.2, new DustOptions(c, size));
+                  loc.getWorld().spawnParticle(Particle.DUST, loc, count, 0.3, 0.3, 0.3, 0.0, new DustOptions(c, size));
+              }
+
+              // Dedicated Dust Ring Engine
+              public static void drawDustRing(Location center, double radius, Color c, int points) {
+                  World w = center.getWorld();
+                  DustOptions dust = new DustOptions(c, 1.5f);
+                  for (int i = 0; i < points; i++) {
+                      double a = 2 * Math.PI * i / points;
+                      Location pt = center.clone().add(Math.cos(a) * radius, 0.05, Math.sin(a) * radius);
+                      w.spawnParticle(Particle.DUST, pt, 1, 0.0, 0.0, 0.0, 0.0, dust);
+                  }
               }
 
               // Anime-Style Magical Floor Seal (Double Concentric Rings + Cross-Spokes)
@@ -195,44 +207,45 @@ jobs:
                   World w = center.getWorld();
                   int ptsOuter = 48;
                   int ptsInner = 24;
+                  DustOptions outerDust = new DustOptions(color, 1.4f);
+                  DustOptions innerDust = new DustOptions(color, 1.1f);
 
-                  // Outer Ring
                   for (int i = 0; i < ptsOuter; i++) {
                       double a = 2 * Math.PI * i / ptsOuter + rot;
                       Location pt = center.clone().add(Math.cos(a) * radius, 0.05, Math.sin(a) * radius);
-                      w.spawnParticle(Particle.DUST, pt, 1, 0, 0, 0, new DustOptions(color, 1.4f));
+                      w.spawnParticle(Particle.DUST, pt, 1, 0.0, 0.0, 0.0, 0.0, outerDust);
                   }
-                  // Inner Ring
                   for (int i = 0; i < ptsInner; i++) {
                       double a = 2 * Math.PI * i / ptsInner - rot;
                       Location pt = center.clone().add(Math.cos(a) * (radius * 0.55), 0.05, Math.sin(a) * (radius * 0.55));
-                      w.spawnParticle(Particle.DUST, pt, 1, 0, 0, 0, new DustOptions(color, 1.1f));
+                      w.spawnParticle(Particle.DUST, pt, 1, 0.0, 0.0, 0.0, 0.0, innerDust);
                   }
-                  // Radial Energy Points
                   for (int i = 0; i < 6; i++) {
                       double a = 2 * Math.PI * i / 6 + rot;
                       Location spoke = center.clone().add(Math.cos(a) * radius, 0.1, Math.sin(a) * radius);
-                      if (accent != null) w.spawnParticle(accent, spoke, 1, 0, 0, 0, 0);
+                      if (accent != null) w.spawnParticle(accent, spoke, 1, 0.0, 0.0, 0.0, 0.0);
                   }
               }
 
               // Orbital Shields (3 Energy Orbs orbiting the player)
               public static void drawOrbitalShield(Location center, double radius, double time, Color c, Particle accent) {
                   World w = center.getWorld();
+                  DustOptions dust = new DustOptions(c, 1.6f);
                   for (int i = 0; i < 3; i++) {
                       double a = time + (i * (2 * Math.PI / 3));
                       Location orb = center.clone().add(Math.cos(a) * radius, 1.0 + Math.sin(a * 2) * 0.25, Math.sin(a) * radius);
-                      w.spawnParticle(Particle.DUST, orb, 5, 0.08, 0.08, 0.08, new DustOptions(c, 1.6f));
-                      if (accent != null) w.spawnParticle(accent, orb, 1, 0, 0, 0, 0);
+                      w.spawnParticle(Particle.DUST, orb, 5, 0.08, 0.08, 0.08, 0.0, dust);
+                      if (accent != null) w.spawnParticle(accent, orb, 1, 0.0, 0.0, 0.0, 0.0);
                   }
               }
 
               // Skyward Pillar of Energy
               public static void drawPillarOfLight(Location base, double height, Color c, Particle accent) {
                   World w = base.getWorld();
+                  DustOptions dust = new DustOptions(c, 1.8f);
                   for (double y = 0; y < height; y += 0.8) {
                       Location pt = base.clone().add(0, y, 0);
-                      w.spawnParticle(Particle.DUST, pt, 3, 0.3, 0.1, 0.3, new DustOptions(c, 1.8f));
+                      w.spawnParticle(Particle.DUST, pt, 4, 0.3, 0.1, 0.3, 0.0, dust);
                       if (accent != null && y % 2.4 < 0.8) {
                           w.spawnParticle(accent, pt, 2, 0.2, 0.2, 0.2, 0.02);
                       }
@@ -247,22 +260,32 @@ jobs:
                   }
               }
 
+              public static void drawDenseDome(Location center, double radius, Particle p, int layers) {
+                  for (int layer = 1; layer <= layers; layer++) {
+                      double y = (layer / (double) layers) * radius;
+                      double r = Math.sqrt(Math.max(0, radius * radius - y * y));
+                      drawDenseRing(center.clone().add(0, y, 0), r, p, 24, 1);
+                  }
+              }
+
               public static void drawHelixBeam(Location start, Vector dir, double maxDist, Color c, Particle accent) {
                   World w = start.getWorld();
+                  DustOptions dust = new DustOptions(c, 1.4f);
                   for (double d = 0; d < maxDist; d += 0.3) {
                       Location base = start.clone().add(dir.clone().multiply(d));
                       double a = d * 5.0;
                       Vector ortho = new Vector(-dir.getZ(), 0, dir.getX()).normalize().multiply(0.7);
                       Location p1 = base.clone().add(ortho.clone().rotateAroundAxis(dir, a));
                       Location p2 = base.clone().add(ortho.clone().rotateAroundAxis(dir, a + Math.PI));
-                      w.spawnParticle(Particle.DUST, p1, 1, 0, 0, 0, new DustOptions(c, 1.4f));
-                      w.spawnParticle(Particle.DUST, p2, 1, 0, 0, 0, new DustOptions(c, 1.4f));
+                      w.spawnParticle(Particle.DUST, p1, 1, 0.0, 0.0, 0.0, 0.0, dust);
+                      w.spawnParticle(Particle.DUST, p2, 1, 0.0, 0.0, 0.0, 0.0, dust);
                       if (accent != null && d % 1.2 < 0.3) {
                           w.spawnParticle(accent, base, 3, 0.1, 0.1, 0.1, 0.02);
                       }
                   }
               }
 
+              // Safe Task Engine with Auto-Cleanup & Guaranteed Expiration
               public void spawnTask(int durationTicks, int periodTicks, Consumer<Integer> tickAction) {
                   new BukkitRunnable() {
                       int elapsed = 0;
@@ -726,8 +749,7 @@ jobs:
                   pl.spawnTask(duration, 2, step -> {
                       double time = (step * 0.2);
                       BlissAspects.drawOrbitalShield(p.getLocation(), 2.2, time, a.getPrimaryColor(), Particle.END_ROD);
-                      BlissAspects.drawDenseRing(p.getLocation().add(0, 0.1, 0), 1.8, Particle.DUST, 24, 1);
-                      BlissAspects.spawnColoredDust(p.getLocation().add(0, 0.1, 0), a.getSecondaryColor(), 1.2f, 4);
+                      BlissAspects.drawDustRing(p.getLocation().add(0, 0.1, 0), 1.8, a.getSecondaryColor(), 24);
 
                       for (Entity e : p.getNearbyEntities(3.0, 2.5, 3.0)) if (e instanceof Projectile proj) {
                           proj.setVelocity(proj.getVelocity().multiply(-0.8));
@@ -780,8 +802,7 @@ jobs:
                       BlissAspects.drawPillarOfLight(c, 24.0, a.getSecondaryColor(), Particle.END_ROD);
                       // Stage 3: Expanding Shockwave Pulse
                       double r = 2.0 + ((step % 20) * 0.35);
-                      BlissAspects.drawDenseRing(c, r, Particle.DUST, 48, 2);
-                      BlissAspects.spawnColoredDust(c, a.getPrimaryColor(), 1.8f, 25);
+                      BlissAspects.drawDustRing(c, r, a.getPrimaryColor(), 48);
 
                       for (Entity e : c.getWorld().getNearbyEntities(c, 8.5, 5.0, 8.5)) if (e instanceof LivingEntity tg && tg != p) {
                           tg.damage(applyExecute(tg, 3.5 * dM, tier), p);
@@ -962,7 +983,7 @@ jobs:
       - name: Upload Plugin Jar
         uses: actions/upload-artifact@v4
         with:
-          name: BlissAspects-10.0-Plugin
+          name: BlissAspects-10.1-Plugin
           path: target/BlissAspects.jar
 
       - name: Upload Texture Pack with Native PNGs
