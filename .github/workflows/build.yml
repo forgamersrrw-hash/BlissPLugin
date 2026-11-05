@@ -32,15 +32,38 @@ jobs:
               <artifactId>BlissAspects</artifactId>
               <version>2.0.0</version>
               <packaging>jar</packaging>
-              <properties><java.version>21</java.version><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding></properties>
+              <properties>
+                  <java.version>21</java.version>
+                  <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+              </properties>
               <repositories>
                   <repository>
                       <id>papermc</id>
                       <url>https://repo.papermc.io/repository/maven-public/</url>
                   </repository>
               </repositories>
-              <dependencies><dependency><groupId>io.papermc.paper</groupId><artifactId>paper-api</artifactId><version>1.21.1-R0.1-SNAPSHOT</version><scope>provided</scope></dependency></dependencies>
-              <build><finalName>BlissAspects</finalName><plugins><plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.13.0</version><configuration><source>21</source><target>21</target></configuration></plugin></plugins></build>
+              <dependencies>
+                  <dependency>
+                      <groupId>io.papermc.paper</groupId>
+                      <artifactId>paper-api</artifactId>
+                      <version>1.21.1-R0.1-SNAPSHOT</version>
+                      <scope>provided</scope>
+                  </dependency>
+              </dependencies>
+              <build>
+                  <finalName>BlissAspects</finalName>
+                  <plugins>
+                      <plugin>
+                          <groupId>org.apache.maven.plugins</groupId>
+                          <artifactId>maven-compiler-plugin</artifactId>
+                          <version>3.13.0</version>
+                          <configuration>
+                              <source>21</source>
+                              <target>21</target>
+                          </configuration>
+                      </plugin>
+                  </plugins>
+              </build>
           </project>""")
 
           save("src/main/resources/plugin.yml", r"""name: BlissAspects
@@ -70,7 +93,7 @@ jobs:
           import org.bukkit.plugin.java.JavaPlugin;
           import org.bukkit.potion.*;
           import org.bukkit.scheduler.BukkitRunnable;
-          import org.bukkit.util.RayTraceResult;
+          import org.bukkit.util.*;
           import java.util.*;
 
           public final class BlissAspects extends JavaPlugin {
@@ -180,4 +203,366 @@ jobs:
               public void updateMeta(ItemStack it, AspectType a, int kills) {
                   ItemMeta m = it.getItemMeta();
                   int tier = Math.min(5, kills / 10);
-                  m.displayName(Component.text("✦ ", NamedTextColor.WHITE).append
+                  m.displayName(Component.text("✦ ", NamedTextColor.WHITE).append(a.getFormattedName().decorate(TextDecoration.BOLD)).append(Component.text(" Soul Gem ✦", NamedTextColor.WHITE)).decoration(TextDecoration.ITALIC, false));
+                  m.lore(List.of(
+                      Component.text(a.getDescription(), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                      Component.empty(),
+                      Component.text("Tier: ", NamedTextColor.GOLD).append(Component.text("★".repeat(Math.max(1, tier)) + (tier == 5 ? " (MAX)" : ""), NamedTextColor.YELLOW)).decoration(TextDecoration.ITALIC, false),
+                      Component.text("Souls: ", NamedTextColor.GRAY).append(Component.text(kills + " kills", NamedTextColor.AQUA)).decoration(TextDecoration.ITALIC, false),
+                      Component.empty(),
+                      Component.text("Passive: ", NamedTextColor.BLUE).append(Component.text(a.getPassiveDesc(), NamedTextColor.WHITE)).decoration(TextDecoration.ITALIC, false),
+                      Component.text("▶ Right-Click: Primary Strike", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false),
+                      Component.text("▶ Shift + Right-Click: Secondary Skill", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false),
+                      Component.empty(),
+                      Component.text("Attributes: +" + (tier * 10) + "% Damage | -" + (tier * 6) + "% Cooldowns", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false),
+                      Component.text("Hold in Main Hand or Offhand to wield.", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, true)
+                  ));
+                  m.addEnchant(Enchantment.UNBREAKING, 1, true);
+                  m.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                  m.getPersistentDataContainer().set(ak, PersistentDataType.STRING, a.name());
+                  m.getPersistentDataContainer().set(kk, PersistentDataType.INTEGER, kills);
+                  it.setItemMeta(m);
+              }
+              public boolean isGem(ItemStack it) {
+                  return it != null && it.hasItemMeta() && it.getItemMeta().getPersistentDataContainer().has(ak, PersistentDataType.STRING);
+              }
+              public AspectType getGemAspect(ItemStack it) {
+                  return isGem(it) ? AspectType.valueOf(it.getItemMeta().getPersistentDataContainer().get(ak, PersistentDataType.STRING)) : null;
+              }
+              public int getGemKills(ItemStack it) {
+                  return isGem(it) ? it.getItemMeta().getPersistentDataContainer().getOrDefault(kk, PersistentDataType.INTEGER, 0) : 0;
+              }
+              public ItemStack getWieldedGem(Player p) {
+                  ItemStack main = p.getInventory().getItemInMainHand();
+                  if (isGem(main)) return main;
+                  ItemStack off = p.getInventory().getItemInOffHand();
+                  return isGem(off) ? off : null;
+              }
+          }
+
+          class AspectListener implements Listener {
+              private final JavaPlugin pl;
+              private final CooldownManager cd;
+              private final GemManager gm;
+              private final Set<UUID> parry = new HashSet<>(), ghost = new HashSet<>();
+
+              public AspectListener(JavaPlugin pl, CooldownManager cd, GemManager gm) {
+                  this.pl = pl; this.cd = cd; this.gm = gm;
+              }
+
+              @EventHandler
+              public void onInteract(PlayerInteractEvent e) {
+                  if (e.getHand() != EquipmentSlot.HAND) return;
+                  Player p = e.getPlayer();
+                  ItemStack gem = gm.getWieldedGem(p);
+                  if (gem == null || !e.getAction().name().contains("RIGHT")) return;
+
+                  AspectType a = gm.getGemAspect(gem);
+                  int kills = gm.getGemKills(gem);
+                  int tier = Math.min(5, kills / 10);
+                  double dMod = 1.0 + (tier * 0.10);
+                  double cMod = Math.max(0.70, 1.0 - (tier * 0.06));
+
+                  if (p.isSneaking()) castSec(p, a, cMod);
+                  else castPri(p, a, dMod, cMod);
+                  e.setCancelled(true);
+              }
+
+              private void castPri(Player p, AspectType a, double dM, double cM) {
+                  String k = "pri";
+                  World w = p.getWorld(); Location l = p.getLocation();
+                  switch (a) {
+                      case TERRA -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Slam", k); return; }
+                          cd.setCooldown(p, k, 10 * cM);
+                          p.setVelocity(l.getDirection().setY(0.4).normalize().multiply(1.3));
+                          w.playSound(l, Sound.ENTITY_IRON_GOLEM_ATTACK, 1.5f, 0.5f);
+                          new BukkitRunnable() {
+                              int t = 0;
+                              public void run() {
+                                  if (p.isOnGround() || ++t > 25) {
+                                      w.spawnParticle(Particle.BLOCK, p.getLocation(), 200, 3, 0.3, 3, Material.STONE.createBlockData());
+                                      w.playSound(p.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1.4f, 0.6f);
+                                      for (Entity e : p.getNearbyEntities(6, 3, 6)) if (e instanceof LivingEntity t && t != p) {
+                                          t.damage(8.0 * dM, p); t.setVelocity(new org.bukkit.util.Vector(0, 0.8, 0));
+                                      }
+                                      cancel();
+                                  }
+                              }
+                          }.runTaskTimer(pl, 5L, 1L);
+                      }
+                      case FROST -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Nova", k); return; }
+                          cd.setCooldown(p, k, 9 * cM);
+                          w.playSound(l, Sound.BLOCK_GLASS_BREAK, 1.5f, 0.5f);
+                          w.spawnParticle(Particle.SNOWFLAKE, l.clone().add(0, 1, 0), 200, 4, 0.5, 4, 0.1);
+                          for (Entity e : p.getNearbyEntities(6, 3, 6)) if (e instanceof LivingEntity t && t != p) {
+                              t.damage(6.0 * dM, p); t.setFreezeTicks(240); t.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 100, 2));
+                          }
+                      }
+                      case REAPER -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Scythe", k); return; }
+                          cd.setCooldown(p, k, 7 * cM);
+                          w.playSound(p.getEyeLocation(), Sound.ENTITY_WITHER_SHOOT, 1.2f, 1.7f);
+                          for (double d = 1; d <= 6; d += 0.5) w.spawnParticle(Particle.SOUL_FIRE_FLAME, p.getEyeLocation().add(l.getDirection().multiply(d)), 6, 0.2, 0.2, 0.2, 0.02);
+                          double st = 0;
+                          for (Entity e : p.getNearbyEntities(5, 2.5, 5)) if (e instanceof LivingEntity t && t != p) {
+                              t.damage(7.0 * dM, p); t.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 80, 1)); st += 2.5;
+                          }
+                          if (st > 0) p.setHealth(Math.min(p.getMaxHealth(), p.getHealth() + st));
+                      }
+                      case RAGE -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Cleave", k); return; }
+                          cd.setCooldown(p, k, 6 * cM);
+                          if (p.getHealth() > 2.0) p.setHealth(p.getHealth() - 2.0);
+                          w.playSound(l, Sound.ENTITY_RAVAGER_ATTACK, 1.3f, 1.0f);
+                          w.spawnParticle(Particle.SWEEP_ATTACK, l.add(0, 1, 0), 12, 1.5, 0.3, 1.5);
+                          double dmg = (7.0 + ((1.0 - (p.getHealth() / p.getMaxHealth())) * 10.0)) * dM;
+                          for (Entity e : p.getNearbyEntities(4.5, 2, 4.5)) if (e instanceof LivingEntity t && t != p) t.damage(dmg, p);
+                      }
+                      case AEGIS -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Judgement", k); return; }
+                          cd.setCooldown(p, k, 10 * cM);
+                          RayTraceResult r = p.rayTraceBlocks(16);
+                          Location tgt = (r != null && r.getHitBlock() != null) ? r.getHitBlock().getLocation().add(0, 1, 0) : l.add(l.getDirection().multiply(10));
+                          w.spawnParticle(Particle.FLASH, tgt, 3);
+                          w.spawnParticle(Particle.END_ROD, tgt, 100, 1.2, 5, 1.2, 0.1);
+                          w.playSound(tgt, Sound.ITEM_TRIDENT_THUNDER, 1.5f, 1.4f);
+                          for (Entity e : w.getNearbyEntities(tgt, 4, 4, 4)) if (e instanceof LivingEntity t && t != p) {
+                              t.damage(9.0 * dM, p); t.setFireTicks(80);
+                          }
+                      }
+                      case BLOOM -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Lash", k); return; }
+                          cd.setCooldown(p, k, 8 * cM);
+                          w.playSound(p.getEyeLocation(), Sound.BLOCK_VINE_BREAK, 1.5f, 0.7f);
+                          for (int i = 1; i <= 9; i++) {
+                              Location pt = p.getEyeLocation().add(l.getDirection().multiply(i));
+                              w.spawnParticle(Particle.HAPPY_VILLAGER, pt, 5, 0.2, 0.2, 0.2);
+                              for (Entity e : w.getNearbyEntities(pt, 1.2, 1.2, 1.2)) if (e instanceof LivingEntity t && t != p) {
+                                  t.damage(6.0 * dM, p); t.setVelocity(l.toVector().subtract(t.getLocation().toVector()).normalize().multiply(0.9));
+                                  t.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 100, 1)); return;
+                              }
+                          }
+                      }
+                      case STORM -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Strike", k); return; }
+                          cd.setCooldown(p, k, 9 * cM);
+                          RayTraceResult tr = p.rayTraceEntities(16);
+                          if (tr != null && tr.getHitEntity() instanceof LivingEntity en && en != p) {
+                              w.strikeLightningEffect(en.getLocation()); en.damage(9.5 * dM, p);
+                              w.spawnParticle(Particle.ELECTRIC_SPARK, en.getLocation().add(0, 1, 0), 60, 0.5, 1, 0.5, 0.2);
+                          }
+                      }
+                      case VOID -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Horizon", k); return; }
+                          cd.setCooldown(p, k, 13 * cM);
+                          RayTraceResult tr = p.rayTraceBlocks(14);
+                          Location c = (tr != null && tr.getHitPosition() != null) ? tr.getHitPosition().toLocation(w) : l.add(l.getDirection().multiply(8));
+                          w.playSound(c, Sound.BLOCK_BEACON_DEACTIVATE, 1.8f, 0.5f);
+                          new BukkitRunnable() {
+                              int ti = 0;
+                              public void run() {
+                                  w.spawnParticle(Particle.PORTAL, c, 80, 1.8, 1.8, 1.8, 0.5);
+                                  for (Entity e : w.getNearbyEntities(c, 7, 7, 7)) if (e instanceof LivingEntity t && t != p) {
+                                      t.setVelocity(c.toVector().subtract(t.getLocation().toVector()).normalize().multiply(0.4));
+                                  }
+                                  if (++ti >= 30) {
+                                      w.playSound(c, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.5f, 1.2f);
+                                      w.spawnParticle(Particle.SONIC_BOOM, c, 1);
+                                      for (Entity e : w.getNearbyEntities(c, 4.5, 4.5, 4.5)) if (e instanceof LivingEntity t && t != p) t.damage(10.0 * dM, p);
+                                      cancel();
+                                  }
+                              }
+                          }.runTaskTimer(pl, 0L, 1L);
+                      }
+                      case PHANTOM -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Ambush", k); return; }
+                          RayTraceResult ry = p.rayTraceEntities(14);
+                          if (ry != null && ry.getHitEntity() instanceof LivingEntity tg && tg != p) {
+                              cd.setCooldown(p, k, 11 * cM);
+                              Location bh = tg.getLocation().subtract(tg.getLocation().getDirection().normalize().multiply(1.5));
+                              bh.setDirection(tg.getLocation().subtract(bh).toVector());
+                              p.teleport(bh); tg.damage(8.0 * dM, p); tg.addPotionEffect(new PotionEffect(PotionEffectType.DARKNESS, 80, 1));
+                              w.playSound(bh, Sound.ENTITY_PLAYER_ATTACK_CRIT, 1.3f, 0.8f);
+                          }
+                      }
+                      case KNIGHT -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Charge", k); return; }
+                          cd.setCooldown(p, k, 7 * cM);
+                          p.setVelocity(l.getDirection().setY(0.1).normalize().multiply(1.9));
+                          w.playSound(l, Sound.ITEM_ARMOR_EQUIP_NETHERITE, 1.5f, 0.7f);
+                          new BukkitRunnable() {
+                              int rt = 0;
+                              public void run() {
+                                  w.spawnParticle(Particle.CRIT, p.getLocation().add(0, 1, 0), 5, 0.3, 0.3, 0.3, 0.02);
+                                  for (Entity e : p.getNearbyEntities(1.5, 1.5, 1.5)) if (e instanceof LivingEntity t && t != p) {
+                                      t.damage(7.0 * dM, p); t.setVelocity(p.getLocation().getDirection().multiply(1.4).setY(0.4));
+                                      cancel(); return;
+                                  }
+                                  if (++rt > 15) cancel();
+                              }
+                          }.runTaskTimer(pl, 1L, 1L);
+                      }
+                  }
+              }
+
+              private void castSec(Player p, AspectType a, double cM) {
+                  String k = "sec";
+                  World w = p.getWorld(); Location l = p.getLocation();
+                  switch (a) {
+                      case TERRA -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Bastion", k); return; }
+                          cd.setCooldown(p, k, 15 * cM);
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 2));
+                          w.playSound(l, Sound.BLOCK_ANVIL_LAND, 1.2f, 0.6f);
+                      }
+                      case FROST -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Slide", k); return; }
+                          cd.setCooldown(p, k, 8 * cM);
+                          p.setVelocity(l.getDirection().setY(0.05).normalize().multiply(1.7));
+                          w.playSound(l, Sound.BLOCK_POWDER_SNOW_STEP, 1.5f, 1.5f);
+                      }
+                      case REAPER -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Wraith", k); return; }
+                          cd.setCooldown(p, k, 13 * cM);
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 80, 0, false, false));
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 80, 2, false, false));
+                          w.playSound(l, Sound.ENTITY_PHANTOM_FLAP, 1.5f, 0.5f);
+                      }
+                      case RAGE -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Roar", k); return; }
+                          cd.setCooldown(p, k, 14 * cM);
+                          p.removePotionEffect(PotionEffectType.SLOWNESS);
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 120, 1));
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 100, 0));
+                          w.playSound(l, Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 1.6f);
+                      }
+                      case AEGIS -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Sanctuary", k); return; }
+                          cd.setCooldown(p, k, 18 * cM);
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 160, 1));
+                          w.playSound(l, Sound.BLOCK_BEACON_ACTIVATE, 1.5f, 1.8f);
+                      }
+                      case BLOOM -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Spores", k); return; }
+                          cd.setCooldown(p, k, 15 * cM);
+                          p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 120, 1));
+                          w.playSound(l, Sound.ENTITY_ALLAY_ITEM_TAKEN, 1.5f, 0.6f);
+                      }
+                      case STORM -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Dash", k); return; }
+                          cd.setCooldown(p, k, 9 * cM);
+                          Location to = l.clone().add(l.getDirection().normalize().multiply(8));
+                          if (to.getBlock().isPassable()) p.teleport(to);
+                          w.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 1f, 1.8f);
+                      }
+                      case VOID -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Warp", k); return; }
+                          cd.setCooldown(p, k, 10 * cM);
+                          p.setVelocity(l.getDirection().multiply(-9).setY(0.25));
+                          w.playSound(l, Sound.ENTITY_ENDERMAN_TELEPORT, 1.2f, 0.6f);
+                      }
+                      case PHANTOM -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Phase", k); return; }
+                          cd.setCooldown(p, k, 20 * cM);
+                          ghost.add(p.getUniqueId()); p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 50, 1));
+                          w.playSound(l, Sound.ENTITY_VEX_CHARGE, 1.2f, 0.7f);
+                          Bukkit.getScheduler().runTaskLater(pl, () -> ghost.remove(p.getUniqueId()), 50L);
+                      }
+                      case KNIGHT -> {
+                          if (cd.isOnCooldown(p, k)) { cd.notice(p, "Guard", k); return; }
+                          cd.setCooldown(p, k, 11 * cM);
+                          parry.add(p.getUniqueId());
+                          w.playSound(l, Sound.ITEM_SHIELD_BLOCK, 1.2f, 1.2f);
+                          Bukkit.getScheduler().runTaskLater(pl, () -> parry.remove(p.getUniqueId()), 30L);
+                      }
+                  }
+              }
+
+              @EventHandler
+              public void onKill(EntityDeathEvent e) {
+                  Player k = e.getEntity().getKiller();
+                  if (k == null) return;
+                  ItemStack gem = gm.getWieldedGem(k);
+                  if (gem == null) return;
+
+                  AspectType a = gm.getGemAspect(gem);
+                  int kills = gm.getGemKills(gem);
+                  int newKills = kills + (e.getEntity() instanceof Player ? 5 : 1);
+                  gm.updateMeta(gem, a, newKills);
+
+                  if (newKills / 10 > kills / 10) {
+                      k.sendMessage(Component.text("★ Your " + a.getDisplayName() + " Gem reached Tier " + (newKills / 10) + "! ★", NamedTextColor.GOLD));
+                      k.playSound(k.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.2f, 1.2f);
+                  }
+              }
+
+              @EventHandler
+              public void onDamage(EntityDamageByEntityEvent e) {
+                  if (e.getEntity() instanceof Player v && ghost.contains(v.getUniqueId())) {
+                      e.setCancelled(true); return;
+                  }
+                  if (e.getEntity() instanceof Player def && parry.contains(def.getUniqueId())) {
+                      e.setCancelled(true); parry.remove(def.getUniqueId());
+                      def.getWorld().playSound(def.getLocation(), Sound.BLOCK_ANVIL_PLACE, 1.2f, 1.8f);
+                      def.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 1));
+                      if (e.getDamager() instanceof LivingEntity atk) atk.damage(5.0, def);
+                  }
+              }
+          }
+
+          class AspectCommand implements CommandExecutor, TabCompleter {
+              private final CooldownManager cd;
+              private final GemManager gm;
+              public AspectCommand(CooldownManager cd, GemManager gm) { this.cd = cd; this.gm = gm; }
+
+              public boolean onCommand(CommandSender s, Command c, String l, String[] a) {
+                  if (a.length == 0 || a[0].equalsIgnoreCase("info")) {
+                      if (!(s instanceof Player p)) return true;
+                      ItemStack gem = gm.getWieldedGem(p);
+                      if (gem != null) {
+                          s.sendMessage(Component.text("Holding: ", NamedTextColor.GOLD).append(gm.getGemAspect(gem).getFormattedName()));
+                          s.sendMessage(Component.text("Souls: " + gm.getGemKills(gem), NamedTextColor.AQUA));
+                      } else s.sendMessage(Component.text("Hold an Aspect Gem to view stats!", NamedTextColor.GRAY));
+                      return true;
+                  }
+                  if (a[0].equalsIgnoreCase("give") && s.hasPermission("bliss.admin")) {
+                      if (a.length < 3) return false;
+                      Player target = Bukkit.getPlayer(a[1]);
+                      if (target == null) return true;
+                      try {
+                          AspectType t = AspectType.valueOf(a[2].toUpperCase());
+                          int k = a.length >= 4 ? Integer.parseInt(a[3]) : 0;
+                          target.getInventory().addItem(gm.createGem(t, k));
+                          s.sendMessage(Component.text("Gave " + t.getDisplayName() + " Gem to " + target.getName(), NamedTextColor.GREEN));
+                      } catch (Exception ex) { s.sendMessage(Component.text("Invalid aspect type.", NamedTextColor.RED)); }
+                      return true;
+                  }
+                  if (a[0].equalsIgnoreCase("resetcd") && s.hasPermission("bliss.admin")) {
+                      Player target = a.length > 1 ? Bukkit.getPlayer(a[1]) : (s instanceof Player p ? p : null);
+                      if (target != null) { cd.reset(target); s.sendMessage(Component.text("Cooldowns reset!", NamedTextColor.GREEN)); }
+                      return true;
+                  }
+                  return true;
+              }
+
+              public List<String> onTabComplete(CommandSender s, Command c, String al, String[] a) {
+                  if (a.length == 1) return List.of("give", "resetcd", "info");
+                  if (a.length == 3 && a[0].equalsIgnoreCase("give")) {
+                      List<String> list = new ArrayList<>();
+                      for (AspectType t : AspectType.values()) list.add(t.name().toLowerCase());
+                      return list;
+                  }
+                  return List.of();
+              }
+          }""")
+
+      - name: Build with Maven
+        run: mvn clean package --batch-mode
+
+      - name: Upload Finished Jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: BlissAspects-2.0-Plugin
+          path: target/BlissAspects.jar
