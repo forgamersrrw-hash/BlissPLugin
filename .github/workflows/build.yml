@@ -19,7 +19,9 @@ jobs:
           import os
 
           def save(path, text):
-              os.makedirs(os.path.dirname(path), exist_ok=True)
+              d = os.path.dirname(path)
+              if d:
+                  os.makedirs(d, exist_ok=True)
               with open(path, "w", encoding="utf-8") as f:
                   f.write(text.strip())
 
@@ -31,7 +33,7 @@ jobs:
               <version>2.0.0</version>
               <packaging>jar</packaging>
               <properties><java.version>21</java.version><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding></properties>
-              <repositories><repository><id>papermc</id><url>https://repo.papermc.io/repository/maven-public/</url></repository></repositories>
+              <repositories><repository><id>papermc</id><url>https://repo.papermc.io/repository/maven-public/</url></repositories></repositories>
               <dependencies><dependency><groupId>io.papermc.paper</groupId><artifactId>paper-api</artifactId><version>1.21.1-R0.1-SNAPSHOT</version><scope>provided</scope></dependency></dependencies>
               <build><finalName>BlissAspects</finalName><plugins><plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.13.0</version><configuration><source>21</source><target>21</target></configuration></plugin></plugins></build>
           </project>""")
@@ -75,7 +77,9 @@ jobs:
                   this.cd = new CooldownManager();
                   this.gm = new GemManager(this);
                   getServer().getPluginManager().registerEvents(new AspectListener(this, cd, gm), this);
-                  Objects.requireNonNull(getCommand("aspect")).setExecutor(new AspectCommand(cd, gm));
+                  AspectCommand cmd = new AspectCommand(cd, gm);
+                  Objects.requireNonNull(getCommand("aspect")).setExecutor(cmd);
+                  Objects.requireNonNull(getCommand("aspect")).setTabCompleter(cmd);
 
                   // Bliss Passive & Ambient FX Tick Loop
                   Bukkit.getScheduler().runTaskTimer(this, () -> {
